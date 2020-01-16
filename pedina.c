@@ -18,6 +18,7 @@ int main(int argc, char * argv[]){
 	int SO_NUM_P = atoi(getenv("SO_NUM_P"));
 	int SO_BASE = atoi(getenv("SO_BASE"));
 	int SO_ALTEZZA = atoi(getenv("SO_ALTEZZA"));
+	int pedine_disposte = SO_NUM_P;
 	
 	struct sembuf sops;
 	
@@ -31,11 +32,6 @@ int main(int argc, char * argv[]){
 
 	my_pid = getpid();
 	
-	
-	
-	
-	
-	
 	/* 
 	 * All child  processes are  attached. Then the  shared memory
 	 * can be  marked for deletion.  Remember: it will  be deleted
@@ -46,16 +42,9 @@ int main(int argc, char * argv[]){
 	/* Inform child processes to start writing to the shared mem 
 	i processi giocatore devono inserire le pedine UNA ALLA VOLTA
 	*/
-	reserveSem(s_id, 0);
 	
-	//se sono qui la pedina è libera di muoversi perchè ha il semaforo
-	if (scacchiera->pedinaOccupaCella = 0 ){
-		scacchiera->riga = i;
-		scacchiera->colonna = j;
-		scacchiera->pedina = my_pid;
-	}
-	
-	releaseSem(s_id, 0);
+	while(true)
+		printf("Processo pedina %d in attesa", my_pid);
 	
 	exit(0);
 }

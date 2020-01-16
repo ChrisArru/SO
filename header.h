@@ -15,21 +15,22 @@
 typedef unsigned int bandierina; /*== 0 cella non ha bandierina else ha valore dato dal master */
 
 
-//typedef struct memoria_condivisa{
-//	unsigned long indice;
-//	cella * scacchiera;
-//	scacchiera= calloc(SO_BASE * SO_ALTEZZA, sizeof(* scacchiera)); /*free finale*/
-//}memoria_condivisa;
-//
-//
-//typedef struct cella{
-//	int riga, colonna;	
-//	bandierina bandierina;
-//	pid_t pedina;
-//	//sem_t pedina; //?????
-//	int pedinaOccupaCella;
-//} cella;
+typedef struct memoria_condivisa{
+	unsigned long indice;
+	cella * scacchiera;
+	scacchiera= calloc(SO_BASE * SO_ALTEZZA, sizeof(* scacchiera)); /*free finale*/
+}memoria_condivisa;
 
+
+typedef struct cella{
+	int riga, colonna;	
+	bandierina bandierina;
+	pid_t pedina;
+	//sem_t pedina; //?????
+	int pedinaOccupaCella;
+} cella;
+
+/*
 struct cella
 {
     int cellaOccupata;
@@ -45,6 +46,7 @@ struct memoria_condivisa
     // structure within structure
     struct cella cell;
 };
+*/
 
 
 /*

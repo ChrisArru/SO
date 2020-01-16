@@ -12,6 +12,7 @@ int main(int argc, char * argv[]){
 	int m_id, s_id;
 	int i, j;
 	struct memoria_condivisa * scacchiera;
+	pid_t value;
 	
 	//capire se così le prende se no bisogna passarle come argomento alla execv dentro master
 	int SO_MAX_TIME = atoi(getenv("SO_MAX_TIME");
@@ -19,6 +20,7 @@ int main(int argc, char * argv[]){
 	int SO_NUM_P = atoi(getenv("SO_NUM_P"));
 	int SO_BASE = atoi(getenv("SO_BASE"));
 	int SO_ALTEZZA = atoi(getenv("SO_ALTEZZA"));
+	int pedine_disposte = SO_NUM_P;
 	
 	char * args[4] = {PEDINA};
 	char m_id_str[3*sizeof(m_id)+1];
@@ -43,8 +45,42 @@ int main(int argc, char * argv[]){
 	args[2] = s_id_str;    /* stringa con s_id */
 	args[3] = NULL;        /* NULL-terminated */
 	
+	/* 
+	i processi giocatore devono inserire le pedine UNA ALLA VOLTA
+	*/
+	while(pedine_disposte<>0)
+	{
+		reserveSem(s_id, 0);
+		
+		i = rand();
+		while(i>SO_BASE*SO_ALTEZZA)
+			i = rand();
+		//se sono qui la pedina è libera di muoversi perchè ha il semaforo
+		if (scacchiera->scacchiera[i].pedinaOccupaCella = 0 ){
+			scacchiera->scacchiera[i].pedinaOccupaCella = 1;
+			
+			switch(value = fork()){
+			case -1:
+				TEST_ERROR;
+				break;			
+			case 0:
+				scacchiera->scacchiera[i].pedina = value;
+				execve(PEDINA, args, NULL);
+				TEST_ERROR;
+			default:
+				break;
+			}
+			
+			pedine_disposte--;
+		}
+		//
+		
+		releaseSem(s_id, 0);
+	}
+	
+	
 	//creo le SO_NUM_P pedine per ogni giocatore
-	for(i = 0; i < SO_NUM_P; i++){
+	/*for(i = 0; i < SO_NUM_P; i++){
 		switch(value = fork()){
 			case -1:
 				TEST_ERROR;
@@ -55,7 +91,7 @@ int main(int argc, char * argv[]){
 			default:
 				break;
 		}
-	}
+	}*/
 	
 	/* 
 	 * All child  processes are  attached. Then the  shared memory
@@ -64,10 +100,9 @@ int main(int argc, char * argv[]){
 	 */
 	shmctl(m_id, IPC_RMID, NULL);
 	
-	/* Inform child processes to start writing to the shared mem 
-	i processi giocatore devono inserire le pedine UNA ALLA VOLTA
-	*/
-	releaseSem(s_id, 0);
+	
+	
+	
 	
 	//put_pedine_randomly(s_id);
 	
