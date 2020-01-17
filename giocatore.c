@@ -8,6 +8,11 @@
 #include "header.h"
 #define PEDINA "pedina"
 
+//DA QUI CREO DELLE COSTANTI PER GLI INDICI DEI SEMAFORI
+#define ID_READY     0 // Semaforo per segnalare che i processi figli sono pronti
+#define ID_GIOCATORI 1 // Semaforo che indica che i giocatori hanno disposto le pedine
+#define ID_PEDINE    2 // Semaforo che indica che i giocatori hanno disposto le pedine
+
 int main(int argc, char * argv[]){
 	int m_id, s_id;
 	int i, j;
@@ -38,6 +43,11 @@ int main(int argc, char * argv[]){
 
 	my_pid = getpid();
 	
+	//Prendo il semaforo del READY, mi servirà dopo
+	sops.sem_num = ID_READY;
+	sops.sem_op = -1;
+	semop(sem_id, &sops, 1);
+	
 	/* Preparing command-line arguments for child's execve */
 	sprintf(m_id_str, "%d", m_id);
 	sprintf(s_id_str, "%d", s_id);
@@ -50,7 +60,7 @@ int main(int argc, char * argv[]){
 	*/
 	while(pedine_disposte<>0)
 	{
-		reserveSem(s_id, 0);
+		reserveSem(s_id, ID_GIOCATORI);
 		
 		i = rand();
 		while(i>SO_BASE*SO_ALTEZZA)
@@ -74,9 +84,21 @@ int main(int argc, char * argv[]){
 			pedine_disposte--;
 		}
 		//
-		
-		releaseSem(s_id, 0);
+		releaseSem(s_id, ID_GIOCATORI);
 	}
+	
+	//Giocatore ha finito, rilascio il semaforo del READY
+	sops.sem_num = ID_READY;
+	sops.sem_op = 1;     //ogni giocatore incrementa il semaforo di 1 (deve essere uguale a SO_NUM_G)
+	while (sops.sem_op < SO_NUM_G) //tutti i giocatori devono aver finito
+		printf("In attesa che tutti i giocatori finiscano di mettere le pedine");
+	
+	//Dico al master (che è in attesa sul semaforo ID_GIOCATORI) che abbiamo finito
+	sops.sem_num = ID_GIOCATORI;
+	sops.sem_op = 1;
+	semop(sem_id, &sops, 1);
+	
+	
 	
 	
 	//creo le SO_NUM_P pedine per ogni giocatore
@@ -99,20 +121,6 @@ int main(int argc, char * argv[]){
 	 * only when all processes are detached from it!!
 	 */
 	shmctl(m_id, IPC_RMID, NULL);
-	
-	
-	
-	
-	
-	//put_pedine_randomly(s_id);
-	
+		
 	exit(0);
-}
-
-//put_pedine_randomly deve inserire le pedine all'interno della scacchiera
-//prima che vengano messe le bandierine. Per ora le inserisco in modo random
-void put_pedine_randomly(int s_id){
-	for(i = 0; i < SO_ALTEZZA; i++)
-		for(j = 0; j < SO_BASE; j=j+2)
-			initSemInUse(s_id, i+j+(SO_BASE*i));
 }

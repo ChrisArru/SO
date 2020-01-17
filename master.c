@@ -8,6 +8,11 @@
 #include "header.h"
 #define GIOCATORE "giocatore"
 
+//DA QUI CREO DELLE COSTANTI PER GLI INDICI DEI SEMAFORI
+#define ID_READY     0 // Semaforo per segnalare che i processi figli sono pronti
+#define ID_GIOCATORI 1 // Semaforo per mettere in attesa il master che i giocatori facciano il loro compito
+#define ID_PEDINE    2 // Semaforo per mettere in attesa il master che i giocatori facciano il loro compito
+
 
 
 
@@ -18,7 +23,7 @@
 
 int main(){
 	unsigned int count_round = 0;
-	pid_t value;
+	pid_t value, child_pid;
 	int sem_id;
 	int m_id, i;
 	int SO_MAX_TIME = atoi(getenv("SO_MAX_TIME");
@@ -72,13 +77,21 @@ int main(){
 	shmctl(m_id, IPC_RMID, NULL);
 	
 	/* Inform child processes to start writing to the shared mem */
-	//sops.sem_op = NUM_PROC;
-	//semop(s_id, &sops, 1);
+	sops.sem_num = ID_READY;
+	sops.sem_op = SO_NUM_G;
+	semop(sem_id, &sops, 1);
+	
+	//Rimango in attesa finchè giocatori non finisce di mettere le pedine
+	sops.sem_num = ID_GIOCATORI;
+	sops.sem_op = -1;
+	semop(sem_id, &sops, 1);
+	
+	printf("Giocatori hanno finito di mettere le pedine");
 	
 	
 	/*aspetta che tutti i figli mettano pedine con wait */
         /*deallocazione dei semafori*/
-	semctl ( sem_id , 0 , IPC_RMID );
+	semctl ( sem_id , ID_READY , IPC_RMID );
 
 
 	printf("%i\n", SO_NUM_G);
@@ -93,7 +106,7 @@ void reset_sem(int sem_id){
 	                  semctl(sem_id, scacchiera[i], SETVAL, 0);
         */
 	for(i = 0; i < SO_BASE * SO_ALTEZZA; i++)
-		initSemAvailable(sem_id, i);
+		initSemInUse(sem_id, i);
 }
 
 
