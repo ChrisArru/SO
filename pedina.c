@@ -1,6 +1,12 @@
+#define _GNU_SOURCE  /* Per poter compilare con -std=c89 -pedantic */
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <sys/sem.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/wait.h>
 #include <time.h>
 #include <sys/msg.h>
@@ -11,9 +17,10 @@ int main(int argc, char * argv[]){
 	int m_id, s_id;
 	int i, j;
 	struct memoria_condivisa * scacchiera;
+	pid_t my_pid;
 	
-	//capire se così le prende se no bisogna passarle come argomento alla execv dentro master
-	int SO_MAX_TIME = atoi(getenv("SO_MAX_TIME");
+	/*capire se così le prende se no bisogna passarle come argomento alla execv dentro master*/
+	int SO_MAX_TIME = atoi(getenv("SO_MAX_TIME"));
 	int SO_NUM_G = atoi(getenv("SO_NUM_G"));
 	int SO_NUM_P = atoi(getenv("SO_NUM_P"));
 	int SO_BASE = atoi(getenv("SO_BASE"));
@@ -43,7 +50,7 @@ int main(int argc, char * argv[]){
 	i processi giocatore devono inserire le pedine UNA ALLA VOLTA
 	*/
 	
-	while(true)
+	for(;;)
 		printf("Processo pedina %d in attesa", my_pid);
 	
 	exit(0);
