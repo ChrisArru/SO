@@ -58,7 +58,7 @@ int SO_MAX_TIME = atoi(getenv("SO_MAX_TIME"));
 	char s_id_str[3*sizeof(sem_id)+1];
 	struct sembuf sops;
 	
-	m_id = shmget(IPC_PRIVATE, sizeof(* scacchiera), 0600); /*creo la memoria condivisa*/
+	m_id = shmget(IPC_PRIVATE, sizeof(struct memoria_condivisa), 0600); /*creo la memoria condivisa*/
 
 	TEST_ERROR;
 	
@@ -73,10 +73,16 @@ int SO_MAX_TIME = atoi(getenv("SO_MAX_TIME"));
 	reset_sem(sem_id, SO_BASE, SO_ALTEZZA);	
 	
 	scacchiera = shmat(m_id, NULL, 0); /*attach memoria virtuale a "master"*/
+    /*scacchiera->scacchiera = calloc(SO_BASE * SO_ALTEZZA, sizeof(* scacchiera->scacchiera)); /*free finale*/
 
-    printf("[MASTER] Scacchiera %d \n", scacchiera->indice);
+    /*printf("[MASTER] Scacchiera %d \n", scacchiera->indice);
+    printf("[MASTER] Dimensione Scacchiera %d \n", sizeof(*scacchiera));
+    printf("[MASTER] Dimensione Scacchiera %d \n", sizeof(*scacchiera->scacchiera));*/
 	
 	scacchiera->indice = 0;
+	initSharedMem(scacchiera->scacchiera, SO_ALTEZZA*SO_BASE);
+	/*printf("[MASTER] Pedina occupa cella %d \n", scacchiera->scacchiera[1].pedinaOccupaCella);
+	printf("[MASTER] Pedina occupa cella %d \n", scacchiera->scacchiera[1]);*/
 	
 	/* Preparing command-line arguments for child's execve */
 	sprintf(m_id_str, "%d", m_id);
@@ -126,6 +132,12 @@ int SO_MAX_TIME = atoi(getenv("SO_MAX_TIME"));
 	sops.sem_op = SO_NUM_G;
 	semop(sem_id, &sops, 1);
 	
+	/*Imposto che si può inserire una pedina alla volta*/
+	sops.sem_num = ID_PEDINE;
+	sops.sem_op = 1;
+	semop(sem_id, &sops, 1);
+	/*printf("%d \n", semctl(sem_id, ID_PEDINE, GETPID));*/
+	
 	/*Rimango in attesa finchè giocatori non finisce di mettere le pedine*/
 	printf("[MASTER] rimango in attesa su semaforo ID_GIOCATORI \n");
 	sops.sem_num = ID_GIOCATORI;
@@ -164,6 +176,16 @@ void reset_sem(int sem_id, int base, int altezza){
 		int i;
 	for(i = 0; i < base * altezza; i++)
 		initSemInUse(sem_id, i);
+}
+
+void initSharedMem(cella * scacchiera, int dim){
+	int i;
+	for(i = 0; i<dim; i++){
+		scacchiera[i].riga = 0;
+		scacchiera[i].colonna = 0;
+		scacchiera[i].pedinaOccupaCella = 0; /* 0 = cella libera 1 = cella occupata da pedina*/
+		scacchiera[i].pedina = 0;
+	}
 }
 
 

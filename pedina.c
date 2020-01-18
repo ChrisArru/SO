@@ -11,21 +11,21 @@
 #include <time.h>
 #include <sys/msg.h>
 #include <unistd.h>
+#include <signal.h>
 #include "header.h"
 
-int main(int argc, char * argv[]){
+int main(int argc, char * argv[], char * envp[]){
 	int m_id, s_id;
 	int i, j;
 	struct memoria_condivisa * scacchiera;
 	pid_t my_pid;
 	
 	/*capire se così le prende se no bisogna passarle come argomento alla execv dentro master*/
-	int SO_MAX_TIME = atoi(getenv("SO_MAX_TIME"));
-	int SO_NUM_G = atoi(getenv("SO_NUM_G"));
-	int SO_NUM_P = atoi(getenv("SO_NUM_P"));
-	int SO_BASE = atoi(getenv("SO_BASE"));
-	int SO_ALTEZZA = atoi(getenv("SO_ALTEZZA"));
-	int pedine_disposte = SO_NUM_P;
+	int SO_MAX_TIME = atoi(envp[0]);
+	int SO_NUM_G = atoi(envp[1]);
+	int SO_BASE = atoi(envp[2]);
+	int SO_ALTEZZA = atoi(envp[3]);
+	int SO_NUM_P = atoi(envp[4]);
 	
 	struct sembuf sops;
 	
@@ -50,8 +50,8 @@ int main(int argc, char * argv[]){
 	i processi giocatore devono inserire le pedine UNA ALLA VOLTA
 	*/
 	
-	for(;;)
-		printf("Processo pedina %d in attesa", my_pid);
+	/*for(;;)
+		/*printf("Processo pedina %d in attesa", my_pid);*/
 	
 	exit(0);
 }

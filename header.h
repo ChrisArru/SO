@@ -23,7 +23,8 @@ typedef struct cella{
 
 typedef struct memoria_condivisa{
 	unsigned long indice;
-	cella * scacchiera;
+	/*cella * scacchiera;*/
+	cella scacchiera[4800];
 	
 }memoria_condivisa;
 

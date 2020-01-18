@@ -11,6 +11,7 @@
 #include <time.h>
 #include <sys/msg.h>
 #include <unistd.h>
+#include <signal.h>
 #include "header.h"
 #define PEDINA "pedina"
 
@@ -19,9 +20,11 @@
 #define ID_GIOCATORI 1 /*Semaforo che indica che i giocatori hanno disposto le pedine*/
 #define ID_PEDINE    2 /*Semaforo che indica che i giocatori hanno disposto le pedine*/
 
+void handle_signal(int signal);
+
 int main(int argc, char * argv[], char * envp[]){
 	int m_id, s_id;
-	int i, j;
+	int i =0, j, status;
 	struct memoria_condivisa * scacchiera;
 	pid_t value, my_pid;
 	
@@ -37,10 +40,26 @@ int main(int argc, char * argv[], char * envp[]){
 	
 	
 	char * args[4] = {PEDINA};
+	/*char * envp[10];*/
+	
 	char m_id_str[3*sizeof(m_id)+1];
 	char s_id_str[3*sizeof(s_id)+1];
 	
+	char s_max_time[3*sizeof(SO_MAX_TIME)+1];
+	char s_num_g[3*sizeof(SO_NUM_G)+1];
+	char s_base[3*sizeof(SO_BASE)+1];
+	char s_altezza[3*sizeof(SO_ALTEZZA)+1];
+	char s_num_pedine[3*sizeof(SO_NUM_P)+1];
+	
 	struct sembuf sops;
+	struct sigaction sa;
+	sigset_t mymask;
+	
+	sa.sa_handler = handle_signal;
+	sa.sa_flags = 0;
+	sigemptyset(&mymask);
+	sa.sa_mask = mymask;
+	sigaction(EAGAIN, &sa, NULL);
 	
 	printf("[GIOCATORE] Processo Giocatori partito \n");
 	/*printf("SO__MAX_TIME %d", SO_MAX_TIME);*/
@@ -52,11 +71,20 @@ int main(int argc, char * argv[], char * envp[]){
 	/* Attacco la memoria condivisa creata dal processo master */
 	scacchiera = shmat(m_id, NULL, 0);
 	TEST_ERROR;
-
+	
+	/*scacchiera->scacchiera = calloc(SO_BASE * SO_ALTEZZA, sizeof(* scacchiera->scacchiera)); /*free finale*/
+	
 	my_pid = getpid();
 	
-	scacchiera->indice = 1;
-	printf("[GIOCATORE] Scacchiera %ld \n", scacchiera->indice);
+	/*scacchiera->indice = 1;*/
+    
+	/* sse tutto funziona qui devo vedere i valori settati dal master!!!!
+	for(i = 0; i<SO_BASE*SO_ALTEZZA; i++){
+		printf("riga %d, colonna %d, pedina occupa cella %d, pid pedina %5d \n", scacchiera->scacchiera[i].riga,
+		scacchiera->scacchiera[i].colonna,
+		scacchiera->scacchiera[i].pedinaOccupaCella,
+		scacchiera->scacchiera[i].pedina = 0);
+	}*/
 	
 	/*Prendo il semaforo del READY, mi servirà dopo*/
 	printf("[GIOCATORE] Prendo il semaforo del READY \n");
@@ -71,58 +99,82 @@ int main(int argc, char * argv[], char * envp[]){
 	args[2] = s_id_str;    /* stringa con s_id */
 	args[3] = NULL;        /* NULL-terminated */
 	
+	sprintf(s_max_time, "%d", SO_MAX_TIME);
+	sprintf(s_num_g, "%d", SO_NUM_G);
+	sprintf(s_base, "%d", SO_BASE);
+	sprintf(s_altezza, "%d", SO_ALTEZZA);
+	sprintf(s_num_pedine, "%d", SO_ALTEZZA);
+	/*envp[0] = s_max_time;    /* stringa con m_id */
+	/*envp[1] = s_num_g;    /* stringa con sem_id */
+	/*envp[2] = s_base;    /* stringa con sem_id */
+	/*envp[3] = s_altezza;    /* stringa con sem_id */
+	/*envp[4] = s_num_pedine;    /* stringa con sem_id */
+	/*envp[5] = NULL;        /* NULL-terminated */
+	
 	/* 
 	i processi giocatore devono inserire le pedine UNA ALLA VOLTA
 	*/
 	
-	printf("[GIOCATORE] Inizio ciclo while per disporre pedine, semaforo ID_PEDINE a 1 \n");
-	sops.sem_num = ID_PEDINE;
+	printf("[GIOCATORE] Inizio ciclo while per disporre pedine, semaforo ID_PEDINE a 1 dal master \n");
+	/*sops.sem_num = ID_PEDINE;
 	sops.sem_op = 1;
-	semop(s_id, &sops, 1);
+	semop(s_id, &sops, 1);*/
 	
-	while(pedine_disposte!=0)
+	while(pedine_disposte<=0)
 	{
-		printf("[GIOCATORE] Riservo semaforo ID_PEDINE \n");
+	    /*printf("%d \n", semctl(s_id, ID_PEDINE, GETVAL));*/
+		printf("[GIOCATORE] Pedine da disporre %d. Riservo semaforo ID_PEDINE \n", pedine_disposte);
+		
 		/*reserveSem(s_id, ID_PEDINE);*/
 		sops.sem_num = ID_PEDINE;
-	sops.sem_op = -1;
-	semop(s_id, &sops, 1);
-		
-		i = rand();
-		while(i>SO_BASE*SO_ALTEZZA)
-			i = rand();
+		/*sops.sem_flg = IPC_NOWAIT;*/
+		sops.sem_op = -1;
+		semop(s_id, &sops, 1);
+		printf("[GIOCATORE] Superato semaforo ID_PEDINE\n");
 		/*se sono qui la pedina è libera di muoversi perchè ha il semaforo*/
-		if (scacchiera->scacchiera[i].pedinaOccupaCella = 0 ){
-			scacchiera->scacchiera[i].pedinaOccupaCella = 1;
-			
+		printf("[GIOCATORE] Cella Occupata ? %d \n", scacchiera->scacchiera[scacchiera->indice].pedinaOccupaCella);
+		if (scacchiera->scacchiera[scacchiera->indice].pedinaOccupaCella == 0 ){
+			scacchiera->scacchiera[scacchiera->indice].pedinaOccupaCella = 1;
+			/*scacchiera->indice ++;*/
 			switch(value = fork()){
 			case -1:
 				TEST_ERROR;
 				break;			
 			case 0:
-				scacchiera->scacchiera[i].pedina = value;
-				execve(PEDINA, args, NULL);
+				printf("[GIOCATORE] Creato processo pedina %5d", getpid());
+				scacchiera->scacchiera[scacchiera->indice].pedina = getpid();
+				execve(PEDINA, args, envp);
 				TEST_ERROR;
 			default:
 				break;
 			}
 			
 			pedine_disposte--;
+			
+			/*printf("[GIOCATORE] Rilascio semaforo ID_PEDINE \n");*/
+		   
 		}
-		printf("[GIOCATORE] Rilascio semaforo ID_PEDINE \n");
+		
+			scacchiera->indice ++;
 		releaseSem(s_id, ID_PEDINE);
 	}
-	
+
 	/*Giocatore ha finito, rilascio il semaforo del READY*/
 	sops.sem_num = ID_READY;
 	sops.sem_op = 1;     /*ogni giocatore incrementa il semaforo di 1 (deve essere uguale a SO_NUM_G)*/
-	while (sops.sem_op < SO_NUM_G) /*tutti i giocatori devono aver finito*/
-		printf("[GIOCATORE] In attesa che tutti i giocatori finiscano di mettere le pedine");
+	/*while (sops.sem_op < SO_NUM_G) /*tutti i giocatori devono aver finito*/
+		/*printf("[GIOCATORE] In attesa che tutti i giocatori finiscano di mettere le pedine");*/
 	
 	/*Dico al master (che è in attesa sul semaforo ID_GIOCATORI) che abbiamo finito*/
 	sops.sem_num = ID_GIOCATORI;
 	sops.sem_op = 1;
 	semop(s_id, &sops, 1);
+	
+	for(i = 0; i<SO_BASE*SO_ALTEZZA; i++){
+		printf("pedina occupa cella %d, pid pedina %5d \n",
+		scacchiera->scacchiera[i].pedinaOccupaCella,
+		scacchiera->scacchiera[i].pedina = 0);
+	}
 	
 	
 	
@@ -149,4 +201,18 @@ int main(int argc, char * argv[], char * envp[]){
 	shmctl(m_id, IPC_RMID, NULL);
 		
 	exit(0);
+}
+
+void handle_signal(int signal){
+	switch(signal){
+		case SIGINT:
+			/* to be manged */
+			break;
+		case SIGALRM:
+			/* to be manged */
+			break;
+		case EAGAIN:
+			/*printf("Ricevuto segnale EAGAIN \n");*/
+			break;
+	}
 }
