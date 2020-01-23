@@ -13,7 +13,7 @@
 #include <unistd.h>
 #include "header.h"
 #define GIOCATORE "giocatore"
-
+#define SCACLUNG SO_BASE*SO_ALTEZZA
 
 /*DA QUI CREO DELLE COSTANTI PER GLI INDICI DEI SEMAFORI*/
 #define ID_READY     0 /* Semaforo per segnalare che i processi figli sono pronti*/
@@ -32,7 +32,7 @@ int main(){
 	pid_t value, child_pid;
 	int sem_id, sem_id_scac;
 	int m_id;
-	int i;
+	int i, j;
 	int status;
 	int riga, colonna;
 	int numero_bandierine;
@@ -160,7 +160,8 @@ int main(){
 	
 	printf("[MASTER] Superato semaforo ID_GIOCATORI \n");
 	while(child_pid = wait(&status) != -1){
-		dprintf(2, "PID=%d, Sender (PID=%d) status =",
+		
+	dprintf(2, "PID=%d, Sender (PID=%d) status =",
 		getpid(),
 		child_pid,
 		status);
@@ -170,20 +171,87 @@ int main(){
 	
 	printf("[MASTER] Giocatori hanno finito di mettere le pedine \n");
 	
+
+
+
+
+
 	/* inserisco bandierine */
-#if 0
+	
+
+
+
+	
+
 	numero_bandierine = SO_FLAG_MIN + rand()%((SO_FLAG_MAX - SO_FLAG_MIN)+1);
-	for(i = 0; i < numero_bandierine; i++){
-		riga = rand()%(SO_BASE+1);
-		colonna = rand()%(SO_ALTEZZA+1);
-		
-		if((cella_ha_bandierina(riga, colonna, * scacchiera, SO_BASE) != 0)) && (&ella_ha_pedina(riga, colonna, * scacchiera, SO_BASE) == 0))
-			modifica_bandierina(riga, colonna, * scacchiera, SO_BASE, SO_ROUND_SCORE /numero_bandierine);
-		else
-			i--;
+	i = 0;
+	while(i < numero_bandierine - 1){
+		j = rand()%((SO_BASE * SO_ALTEZZA)+1);
+		if(scacchiera->scacchiera[j].pedinaOccupaCella == 0 && scacchiera->scacchiera[j].bandierina == 0){
+			scacchiera->scacchiera[j].bandierina = SO_ROUND_SCORE / numero_bandierine;
+			i++;
+		}
 	}
-#endif
-/*-------------------------------------------*/
+
+	i = 0;
+	while(i < 1){
+		j = rand()%((SO_BASE * SO_ALTEZZA)+1);
+		if(scacchiera->scacchiera[j].pedinaOccupaCella == 0 && scacchiera->scacchiera[j].bandierina == 0){
+		scacchiera->scacchiera[j].bandierina = (SO_ROUND_SCORE / numero_bandierine)+(SO_ROUND_SCORE % numero_bandierine);
+		i++;
+		}	
+	}
+	
+
+	
+/*codice che stampa scacchiera */
+	
+	for(i = 0; i < ((SO_BASE) * 10); i++)
+		if (i == (((SO_BASE) * 10) -1))
+			printf("-\n");
+		else
+			printf("-");
+
+	for(i = 0; i < SCACLUNG; i++){
+		if((i % SO_BASE) == 0)
+			printf("|");
+		if(scacchiera->scacchiera[i].pedinaOccupaCella)
+			if((i % SO_BASE) == (SO_BASE - 1))
+				printf(" P:%5d |\n", scacchiera->scacchiera[i].pedina);
+			else
+				printf(" P:%5d |", scacchiera->scacchiera[i].pedina);
+		if(scacchiera->scacchiera[i].bandierina)
+			if((i % SO_BASE) == (SO_BASE - 1))
+				printf("   B:%u   |\n", scacchiera->scacchiera[i].bandierina);
+			else
+				printf("   B:%u   |", scacchiera->scacchiera[i].bandierina);
+		if(!scacchiera->scacchiera[i].pedinaOccupaCella && !scacchiera->scacchiera[i].bandierina)
+			if((i % SO_BASE) == (SO_BASE - 1))
+				printf("         |\n");
+			else
+				printf("         |");
+
+	}
+	
+
+	for(i = 0; i < ((SO_BASE) * 10); i++)
+		if (i == (((SO_BASE) * 10) -1))
+			printf("-\n");
+		else
+			printf("-");
+/*--------------------------------------------------*/
+#if 0
+	for(i = 0; i<SO_BASE*SO_ALTEZZA; i++){
+		printf("[GIOCATORE: CELLA[%i] VAR.PEDINA.OCCUPA.SCAC[%i] PEDINAPID[%5d] BANDIERINA[%u]\n",i ,scacchiera->scacchiera[i].pedinaOccupaCella,
+		scacchiera->scacchiera[i].pedina, scacchiera->scacchiera[i].bandierina);
+	}
+#endif	
+
+	
+
+
+
+
 
 
 	/*for(i=0; i<SO_ALTEZZA*SO_BASE; i++)
