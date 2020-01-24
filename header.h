@@ -11,22 +11,58 @@
 
 
 
+/*
+DA QUI CREO DELLE COSTANTI PER GLI INDICI DEI SEMAFORI
+NOTA BENE: i semafori devono essere presenti in ogni cella quindi ci saranno SO_ALTEZZA*SO_BASE semafori
+In più serviranno dei semafori per sincronizzare i vari processi, creo 5000 semafori e dal 4800 (escluso) serviranno
+per la gestione dei processi
+*/
+#define ID_READY         4801 /*Semaforo per segnalare che i processi figli sono pronti*/
+#define ID_GIOCATORI 4802 /*Semaforo che indica che i giocatori hanno disposto le pedine*/
+#define ID_PEDINE        4803 /*Semaforo che indica che i giocatori hanno disposto le pedine*/
+#define ID_ROUND        4804 /*Semaforo che indica che master vuole iniziare un nuovo round*/
+#define ID_MOVE          4805 /*Semaforo che indica che UN giocatore ha finito di dare le indicazioni alle pedine */
+#define ID_READY_TO_PLAY          4806 /*Semaforo che indica che TUTTI i giocatori hanno finito di dare le indicazioni e informa MASTER che può iniziare il timer*/
+#define ID_PLAY          4807 /*Master dà inizio alla partita e pedine si muovono*/
+
+/* Global variables over the BSS*/
+int SO_MAX_TIME;
+int SO_NUM_G;
+int SO_BASE;
+int SO_ALTEZZA; 
+int SO_NUM_P;
+int SO_FLAG_MIN;
+int SO_FLAG_MAX;
+int SO_ROUND_SCORE;
+int SO_N_MOVES;
+int SO_MIN_HOLD_NSEC;
+
 typedef unsigned int bandierina; /*== 0 cella non ha bandierina else ha valore dato dal master */
 
 typedef struct cella{
 	int riga, colonna;	
 	bandierina bandierina;
 	pid_t pedina;
-	/*sem_t pedina; //?????*/
 	int pedinaOccupaCella;
 } cella;
 
 typedef struct memoria_condivisa{
-	unsigned long indice;
-	/*cella * scacchiera;*/
-	cella scacchiera[4800];
-	
+	unsigned int rigaRand;
+	unsigned int colonnaRand;
+	/*cella scacchiera[4800];*/
+	cella scacchiera[40][120]; /*matrice con SO_ALTEZZA righe e SO_BASE colonne*/
+	pid_t giocatori[4];
+	unsigned int punteggio[4];
+	unsigned int mosse[4];
+	unsigned int posizionePedina[1600];
+	unsigned int posBandierine[40][2];
 }memoria_condivisa;
+
+struct msgbuf{
+	long mtype;
+	char mtext[4800];
+};
+struct msgbuf my_msg; /* struttura per la coda dei messaggi*/
 
 /*scacchiera= calloc(SO_BASE * SO_ALTEZZA, sizeof(* scacchiera)); /*free finale*/
 
@@ -48,7 +84,6 @@ struct memoria_condivisa
     struct cella cell;
 };
 */
-
 
 /*
  * The following union must be defined as required by the semctl man
