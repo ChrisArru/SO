@@ -43,6 +43,7 @@ typedef struct cella{
 	int riga, colonna;	
 	bandierina bandierina;
 	pid_t pedina;
+	pid_t pedina_pid;
 	int pedinaOccupaCella;
 } cella;
 

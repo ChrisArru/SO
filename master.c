@@ -83,9 +83,9 @@ void print_status(){
 	for(i = 0; i<SO_ALTEZZA; i++){
 		for(j = 0; j<SO_BASE; j++){
 			if(scacchiera->scacchiera[i][j].pedinaOccupaCella == 1){ /*cella occupata da pedina*/
-				my_time.tv_sec = 0;
+				/*my_time.tv_sec = 0;
 				my_time.tv_nsec = 1	;
-				nanosleep(&my_time, NULL);
+				nanosleep(&my_time, NULL);*/
 				if(scacchiera->scacchiera[i][j].pedina == scacchiera->giocatori[0] )
 					printf("\033[1;31mA");
 				else if(scacchiera->scacchiera[i][j].pedina == scacchiera->giocatori[1] )
@@ -310,7 +310,6 @@ int main(){
 	/*Finito di posizionare le bandierine, stampo lo stato prima di far partire il timer*/
 	print_status();
 	
-	exit(0);
 	/* Ora devo iniziare il ROUND*/
 	/*alarm(SO_MAX_TIME);*/
 	
@@ -344,7 +343,10 @@ int main(){
 	printf("[MASTER] Uscito da semaforo ID_READY_TO_PLAY e setto ID_PLAY \n");
 	
 	
-	releaseSem(sem_id, ID_PLAY);
+	/*releaseSem(sem_id, ID_PLAY);*/
+	sops.sem_num = ID_PLAY;
+	sops.sem_op = SO_NUM_P*SO_NUM_G;
+	semop(sem_id, &sops, 1);
 	
 	/*exit(0);*/
 	

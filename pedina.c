@@ -45,10 +45,6 @@ int main(int argc, char * argv[], char * envp[]){
 
 	my_pid = getpid();
 	
-	while(1)
-	{
-		
-	}
 	
 	/* 
 	 * All child  processes are  attached. Then the  shared memory
@@ -65,7 +61,7 @@ int main(int argc, char * argv[], char * envp[]){
 		queue_id = msgget(getppid(), IPC_CREAT | 0600);
 		TEST_ERROR;	
 		
-		while((num_bytes = msgrcv(queue_id, &my_msg, SO_BASE*SO_ALTEZZA, 1, IPC_NOWAIT)) != -1){
+		while((num_bytes = msgrcv(queue_id, &my_msg, sizeof(my_msg), getpid(), IPC_NOWAIT)) != -1){
 			if(num_bytes >= 0)
 				printf("[PEDINA %5d] MESSAGGIO RICEVUTO = %s \n", getpid(), my_msg.mtext);
 			else
