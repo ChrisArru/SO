@@ -55,7 +55,7 @@ typedef struct memoria_condivisa{
 	pid_t giocatori[4];
 	unsigned int punteggio[4];
 	unsigned int mosse[4];
-	unsigned int posizionePedina[1600];
+	unsigned int posizionePedina[1600][2];
 	unsigned int posBandierine[40][2];
 }memoria_condivisa;
 

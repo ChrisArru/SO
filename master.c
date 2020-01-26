@@ -27,7 +27,9 @@ struct timespec my_time;
 /* Funzione per resettare i semafori */
 void reset_sem(int sem_id, int dimensione){
 	int i;
-	for(i = 0; i < dimensione; i++)
+	for(i = 0; i <= 4800; i++)
+		initSemAvailable(sem_id, i);
+	for(i = 4801; i <= dimensione; i++)
 		initSemInUse(sem_id, i);
 }
 
