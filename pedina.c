@@ -39,7 +39,12 @@ int main(int argc, char * argv[], char * envp[]){
 	int riga = 0;
 	int colonna = 0;
 	struct sembuf sops;
+	struct timespec my_time;	
+	bandierina punteggio = 0;
 	
+	/*setto il tempo per la nanosleep */
+	my_time.tv_sec = 0;
+	my_time.tv_nsec = SO_MIN_HOLD_NSEC;
 
 	
 	/*inizializzo il vettore dei comandi */
@@ -110,41 +115,148 @@ int main(int argc, char * argv[], char * envp[]){
 			/* devo gestire adesso tutte le indicazioni che mi sono state inviate dal giocatore */
 
 		#if 1
-		
-		for(i = lunghezza_vet; i >= 0; i--){
-			switch(comando[i]){
-				case 1: /* dobbiamo spostare la pedina sopra */
-					if(riga == (SO_ALTEZZA - 1))      /*caso in cui la pedina è già sopra */
-						               /* la sposto a destra */
+		while(SO_N_MOVES){
+			for(i = lunghezza_vet; i >= 0; i--){
+				switch(comando[i]){
+					case 1: /* dobbiamo spostare la pedina sopra */
+						if(riga == (SO_ALTEZZA - 1))      /*caso in cui la pedina è già in cima */
+							i++;  /* vado avanti con le istruzioni */
+						else
+							switch(( s_id , ((riga + 1) * SO_BASE) + colonna, GETVAL )){
+								case 0:
+									i++;
+									break;
+								case 1: /* pedina libera */
+									scacchiera->scacchiera[riga][colonna].pedinaOccupaCella = 0;
+									scacchiera -> scacchiera[riga][colonna].pedina_pid = 0;
+									scacchiera -> scacchiera[riga][colonna].pedina = 0;
+									sops.sem_num = (riga * SO_BASE) + colonna;
+									sops.sem_flg = IPC_NOWAIT;
+									sops.sem_op = 1;
+									nanosleep (& my_time , NULL );
+									sops.sem_num = (riga + 1 * SO_BASE) + colonna;
+									sops.sem_flg = IPC_NOWAIT;
+									sops.sem_op = -1;
+									scacchiera->scacchiera[riga + 1][colonna].pedinaOccupaCella = 1;
+									scacchiera -> scacchiera[riga + 1][colonna].pedina_pid = getpid();
+									scacchiera -> scacchiera[riga + 1][colonna].pedina = getppid();
+									riga++;
+									SO_N_MOVES--;  /* ho spostato la pedina sull' altra cella */
+									if(scacchiera -> scacchiera[riga][colonna].bandierina){
+										punteggio = punteggio + scacchiera -> scacchiera[riga][colonna].bandierina;
+										scacchiera -> scacchiera[riga][colonna].bandierina = 0;
+									}
+								default:
+									break;
+							}
+						break;
+					case 2:/* dobbiamo spostare la pedina sotto */
+						if(riga == 0)      /*caso in cui la pedina è già all' estremo inferiore */
+							i++;  /* vado avanti con le istruzioni */
+						else
+							switch(( s_id , ((riga - 1) * SO_BASE) + colonna, GETVAL )){
+								case 0:
+									i++;
+									break;
+								case 1: /* pedina libera */
+									scacchiera->scacchiera[riga][colonna].pedinaOccupaCella = 0;
+									scacchiera -> scacchiera[riga][colonna].pedina_pid = 0;
+									scacchiera -> scacchiera[riga][colonna].pedina = 0;
+									sops.sem_num = (riga * SO_BASE) + colonna;
+									sops.sem_flg = IPC_NOWAIT;
+									sops.sem_op = 1;
+									nanosleep (& my_time , NULL );
+									sops.sem_num = (riga - 1 * SO_BASE) + colonna;
+									sops.sem_flg = IPC_NOWAIT;
+									sops.sem_op = -1;
+									scacchiera->scacchiera[riga - 1][colonna].pedinaOccupaCella = 1;
+									scacchiera -> scacchiera[riga - 1][colonna].pedina_pid = getpid();
+									scacchiera -> scacchiera[riga - 1][colonna].pedina = getppid();
+									riga--;
+									SO_N_MOVES--;  /* ho spostato la pedina sull' altra cella */
+									if(scacchiera -> scacchiera[riga][colonna].bandierina){
+										punteggio = punteggio + scacchiera -> scacchiera[riga][colonna].bandierina;
+										scacchiera -> scacchiera[riga][colonna].bandierina = 0;
+									}
+								default:
+									break;
+							}
+						break;
+					case 3: /* dobbiamo spostare la pedina a destra */
+						if(colonna == (SO_BASE - 1))      /*caso in cui la pedina è già all' estremo destro della cella */
+							i++;  /* vado avanti con le istruzioni */
+						else
+							switch(( s_id , ((riga) * SO_BASE) + colonna + 1, GETVAL )){
+								case 0:
+									i++;
+									break;
+								case 1: /* pedina libera */
+									scacchiera->scacchiera[riga][colonna].pedinaOccupaCella = 0;
+									scacchiera -> scacchiera[riga][colonna].pedina_pid = 0;
+									scacchiera -> scacchiera[riga][colonna].pedina = 0;
+									sops.sem_num = (riga * SO_BASE) + colonna;
+									sops.sem_flg = IPC_NOWAIT;
+									sops.sem_op = 1;
+									nanosleep (& my_time , NULL );
+									sops.sem_num = (riga * SO_BASE) + colonna + 1;
+									sops.sem_flg = IPC_NOWAIT;
+									sops.sem_op = -1;
+									scacchiera->scacchiera[riga][colonna+1].pedinaOccupaCella = 1;
+									scacchiera -> scacchiera[riga][colonna+1].pedina_pid = getpid();
+									scacchiera -> scacchiera[riga][colonna+1].pedina = getppid();
+									colonna++;
+									SO_N_MOVES--;  /* ho spostato la pedina sull' altra cella */
+									if(scacchiera -> scacchiera[riga][colonna].bandierina){
+										punteggio = punteggio + scacchiera -> scacchiera[riga][colonna].bandierina;
+										scacchiera -> scacchiera[riga][colonna].bandierina = 0;
+									}
+								default:
+									break;
+							}
+						break;
+					case 4: /* dobbiamo spostare la pedina a sinistra */
+						if(colonna == 0)      /*caso in cui la pedina è già all' estremo inferiore della cella */
+							i++;  /* vado avanti con le istruzioni */
+						else
+							switch(( s_id , ((riga) * SO_BASE) + colonna - 1, GETVAL )){
+								case 0:
+									i++;
+									break;
+								case 1: /* pedina libera */
+									scacchiera->scacchiera[riga][colonna].pedinaOccupaCella = 0;
+									scacchiera -> scacchiera[riga][colonna].pedina_pid = 0;
+									scacchiera -> scacchiera[riga][colonna].pedina = 0;
+									sops.sem_num = (riga * SO_BASE) + colonna;
+									sops.sem_flg = IPC_NOWAIT;
+									sops.sem_op = 1;
+									nanosleep (& my_time , NULL );
+									sops.sem_num = (riga * SO_BASE) + colonna - 1;
+									sops.sem_flg = IPC_NOWAIT;
+									sops.sem_op = -1;
+									scacchiera->scacchiera[riga][colonna-1].pedinaOccupaCella = 1;
+									scacchiera -> scacchiera[riga][colonna-1].pedina_pid = getpid();
+									scacchiera -> scacchiera[riga][colonna-1].pedina = getppid();
+									colonna--;
+									SO_N_MOVES--;  /* ho spostato la pedina sull' altra cella */
+									if(scacchiera -> scacchiera[riga][colonna].bandierina){
+										punteggio = punteggio + scacchiera -> scacchiera[riga][colonna].bandierina;
+										scacchiera -> scacchiera[riga][colonna].bandierina = 0;
+									}
+								default:
+									break;
+							}
+
+
+
+
+						break;
+					default: /* ci troviamo in caso di errore */
 						
+
 
 	
-					break;
-				case 2:/* dobbiamo spostare la pedina sotto */
-				
-					
-
-
-					break;
-				case 3: /* dobbiamo spostare la pedina a destra */
-					
-
-
-
-					break;
-				case 4: /* dobbiamo spostare la pedina a sinistra */
-					
-
-
-
-
-					break;
-				default: /* ci troviamo in caso di errore */
-						
-
-
-
-					break;
+						break;
+				}			
 			}
 		}
 

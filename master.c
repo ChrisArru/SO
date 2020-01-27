@@ -221,6 +221,13 @@ int main(){
 	envp[9] = s_min_hold_nsec;    
 	envp[10] = NULL;        /* NULL-terminated */
 	
+
+
+	/* inizializzo i semafori delle celle a 1 visto che sono libere */
+	for(i = 0; i < SO_BASE * SO_ALTEZZA; i++){
+		semctl ( sem_id, i, SETVAL, 1) ;
+	}
+	
 	/*value = malloc(SO_NUM_G*sizeof(value));*/
 
 	for(i = 0; i < SO_NUM_G; i++){
