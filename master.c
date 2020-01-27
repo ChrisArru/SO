@@ -19,7 +19,7 @@
     impostare il signal handler per la stampa della matrice
     e la deallocazione della stessa. */
 
-
+/* sistemare la roba delle bandierine e gli a capo */
 
 struct memoria_condivisa * scacchiera;
 struct timespec my_time;
@@ -68,6 +68,7 @@ void initSharedMem(memoria_condivisa * scacchiera){
 			scacchiera->scacchiera[i][j].colonna = 0;
 			scacchiera->scacchiera[i][j].pedinaOccupaCella = 0; /* 0 = cella libera 1 = cella occupata da pedina*/
 			scacchiera->scacchiera[i][j].pedina = 0;
+			scacchiera->scacchiera[i][j].pedina_pid= 0;
 		}
 	}
 }
@@ -225,7 +226,7 @@ int main(){
 
 	/* inizializzo i semafori delle celle a 1 visto che sono libere */
 	for(i = 0; i < SO_BASE * SO_ALTEZZA; i++){
-		semctl ( sem_id, i, SETVAL, 1) ;
+		semctl( sem_id, i, SETVAL, 1) ;
 	}
 	
 	/*value = malloc(SO_NUM_G*sizeof(value));*/
@@ -301,7 +302,7 @@ int main(){
 	Basterà quindi controllare che scacchiera->scacchiera[scacchiera->indice].pedinaOccupaCella == 0.
 	Il numero di bandierine è un numero RANDOM compreso tra SO_FLAG_MIN e SO_FLAG_MAX */
 	
-	numBandierina = SO_FLAG_MIN + rand()%((SO_FLAG_MAX-SO_FLAG_MIN)+1) ;
+	numBandierina = SO_FLAG_MIN + rand()%((SO_FLAG_MAX-SO_FLAG_MIN)+1) ;             /* da sistemare le bandierine */
 	/*getchar();*/
 	/*punteggioBandTot = SO_ROUND_SCORE;
 	punteggioBandierina = rand()%punteggioBandTot+1;
@@ -369,14 +370,14 @@ int main(){
 	/* Master aspetta che TUTTI i giocatori abbiano finito di dare disposizioni alle pedine*/
 	printf("[MASTER] Aspetto su semaforo ID_READY_TO_PLAY \n");
 	sops.sem_num = ID_READY_TO_PLAY;
-	sops.sem_op = -SO_NUM_G;
+	sops.sem_op = SO_NUM_G;
 	semop(sem_id, &sops, 1);
 	printf("[MASTER] Uscito da semaforo ID_READY_TO_PLAY e setto ID_PLAY \n");
 	
 	
 	/*releaseSem(sem_id, ID_PLAY);*/
 	sops.sem_num = ID_PLAY;
-	sops.sem_op = SO_NUM_P*SO_NUM_G;
+	sops.sem_op = -(SO_NUM_P*SO_NUM_G);
 	semop(sem_id, &sops, 1);
 	
 
@@ -389,6 +390,7 @@ int main(){
 		child_pid,
 		status);
 	}
+	#if 0
 	while(1){
 		/*Usare le seguenti funzioni per creare un timer e moniotrare se si ha raggiunto il TIMEOUT
 		timer_create()
@@ -397,7 +399,7 @@ int main(){
 		*/
 		
 	}
-	
+	#endif
 	
 	
 	/*for(i = 0; i<SO_BASE*SO_ALTEZZA; i++){

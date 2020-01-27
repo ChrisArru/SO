@@ -45,7 +45,7 @@ int main(int argc, char * argv[], char * envp[]){
 	SO_N_MOVES = atoi(envp[8]);
 	SO_MIN_HOLD_NSEC = atoi(envp[9]);
 	int pedine_disposte = SO_NUM_P;
-	
+	int prova;
 	
 	char * args[5] = {PEDINA};
 	/*char * envp[10];*/
@@ -144,7 +144,7 @@ int main(int argc, char * argv[], char * envp[]){
 	{
 	    /*printf("%d \n", semctl(s_id, ID_PEDINE, GETVAL));*/
 		printf("[GIOCATORE] %5d Pedine da disporre %d. Riservo semaforo ID_PEDINE \n", my_pid, pedine_disposte);
-		reserveSem(s_id, ID_PEDINE);
+		  
 		/*sops.sem_num = ID_PEDINE;*/
 		/*sops.sem_flg = IPC_NOWAIT;*/
 		/*sops.sem_op = -1;
@@ -152,8 +152,8 @@ int main(int argc, char * argv[], char * envp[]){
 		printf("[GIOCATORE] %5d Superato semaforo ID_PEDINE\n", my_pid);
 		/*se sono qui la pedina è libera di muoversi perchè ha il semaforo*/
 		/*printf("[GIOCATORE] %5d Cella %d %d Occupata ? %d \n", my_pid, scacchiera->rigaRand,scacchiera->colonnaRand,scacchiera->scacchiera[scacchiera->rigaRand][scacchiera->colonnaRand].pedinaOccupaCella);*/
-		if (scacchiera->scacchiera[scacchiera->rigaRand][scacchiera->colonnaRand].pedinaOccupaCella == 0 ){
-			
+		if (scacchiera->scacchiera[scacchiera->rigaRand][scacchiera->colonnaRand].pedinaOccupaCella == 0  /* altro controllo sul semaforo */){
+			reserveSem(s_id, ID_PEDINE);  /* prima era fuori */
 			
 			/*scacchiera->indice ++;*/
 			switch(value = fork()){
@@ -191,7 +191,7 @@ int main(int argc, char * argv[], char * envp[]){
 
 	
 			pedine_disposte--;
-			j++;
+			j++; /*????*/
 			printf("[GIOCATORE] %5d Pedine disposte %d su riga %d colonna %d \n", my_pid, pedine_disposte, scacchiera->rigaRand,scacchiera->colonnaRand);
 			/*printf("[GIOCATORE] Rilascio semaforo ID_PEDINE \n");*/
 		   
@@ -204,7 +204,7 @@ int main(int argc, char * argv[], char * envp[]){
 		/*getchar();*/
 		/*printf("[GIOCATORE] %5d scacchiera indice %d \n", my_pid, scacchiera->indice);
 		printf("[GIOCATORE] %5d Rilascio semaforo ID_PEDINE \n", my_pid);*/
-		releaseSem(s_id, ID_PEDINE);
+		releaseSem(s_id, ID_PEDINE);  /* non ho capito */
 		
 		/*sops.sem_flg = IPC_NOWAIT;*/
 		/*sops.sem_num = ID_PEDINE;
@@ -229,8 +229,8 @@ int main(int argc, char * argv[], char * envp[]){
 	
 	
 	
-	while(1)
-	{
+	for(prova = 0; prova < 2; prova++){
+	
 		/* ciclo infinito in attesa che il master inizi la partita
 		Una volta ricevuta comunicazione dal master dell'inizio del round devo dare indicazione alle mie pedine
 		su come muoversi
@@ -325,7 +325,7 @@ char* check_target(int riga_pedina, int colonna_pedina, memoria_condivisa * scac
 		distanza[i][1] = colonna_pedina - scacchiera->posBandierine[i][1];
 	}
 
-	min_dist = abs(distanza[0][0]) + abs(distanza[0][1]);
+	min_dist = abs(distanza[0][0]) + abs(distanza[0][1]); 
 	
 	printf("la pedina %5d si trova su riga %d e colonna %d \n", scacchiera->scacchiera[riga_pedina][colonna_pedina].pedina_pid, riga_pedina, colonna_pedina);
 	for (i=0; i<5; i++){

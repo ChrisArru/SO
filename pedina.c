@@ -13,7 +13,29 @@
 #include <unistd.h>
 #include <signal.h>
 #include "header.h"
-
+#define GESTISCI_RISORSE_AND_CHECK(sem_id, sops, num)			\
+	if (semop(sem_id, sops, num) == -1) {				\
+	        switch (errno) {					\
+		case EIDRM:						\
+			printf("PID = %d, riga:%d : semaforo rimosso mentre ero bloccato\n", \
+			       getpid(), __LINE__);			\
+			exit(EXIT_FAILURE);				\
+		case EINVAL:						\
+			printf("PID = %d, riga:%d : semaforo rimosso prima di blocco (o mai esistito)\n", \
+			       getpid(), __LINE__);			\
+			exit(EXIT_FAILURE);				\
+		case EAGAIN:						\
+			printf("PID = %d, riga:%d : mi sono stufato di aspettare\n", \
+			       getpid(), __LINE__);			\
+			exit(EXIT_FAILURE);				\
+						\
+		default:						\
+			printf("PID = %d, riga:%d : altro errore\n",	\
+			       getpid(), __LINE__);			\
+			TEST_ERROR;					\
+			exit(EXIT_FAILURE);				\
+		}							\
+	}
 	
 
 int main(int argc, char * argv[], char * envp[]){
@@ -22,7 +44,7 @@ int main(int argc, char * argv[], char * envp[]){
 	struct memoria_condivisa * scacchiera;
 	pid_t my_pid;
 	char comando[80];
-	long comandi;
+	unsigned long comandi;
 	int lunghezza_vet;
 	int vet_comandi[80];
 	/*capire se così le prende se no bisogna passarle come argomento alla execv dentro master*/
@@ -90,10 +112,13 @@ int main(int argc, char * argv[], char * envp[]){
 		while((num_bytes = msgrcv(queue_id, &my_msg, sizeof(my_msg), getpid(), IPC_NOWAIT)) != -1){
 			if(num_bytes >= 0){
 				printf("[PEDINA %5d] MESSAGGIO RICEVUTO = %s \n", getpid(), my_msg.mtext);
-				sprintf(comando, "%s", my_msg.mtext);
-				printf("comando è %s\n", comando);
+				sprintf(comandi, "%u", my_msg.mtext);
+				#if 0
+				printf("[PEDINA] PID: %d comando è %s\n", getpid(), comando);
+				comando[20] = '/0';
 				comandi = atol(comando);
-				printf("numero è %ld\n", comandi);
+				#endif
+				printf("[PEDINA] PID: %d numero è %lu\n", getpid(), comandi);
 				
 			}
 			else
@@ -101,13 +126,13 @@ int main(int argc, char * argv[], char * envp[]){
 			/* ciclo infinito in attesa che il master inizi la partita*/
 		}
 		
-			for(i = 0; i < sizeof(comando)/sizeof(long); i++){
+			for(i = 0; i < sizeof(comandi)/sizeof(unsigned long); i++){
 				vet_comandi[i] = comandi % 10;
 				comandi / 10;
 			}
 			lunghezza_vet = i;
 			for( i = 0; i < lunghezza_vet; i++){
-				printf("%i", vet_comandi[i]);
+				printf("%i ookkkkkkkkkkkkkk", vet_comandi[i]);
 
 			}
 			
@@ -122,21 +147,24 @@ int main(int argc, char * argv[], char * envp[]){
 						if(riga == (SO_ALTEZZA - 1))      /*caso in cui la pedina è già in cima */
 							i++;  /* vado avanti con le istruzioni */
 						else
-							switch(( s_id , ((riga + 1) * SO_BASE) + colonna, GETVAL )){
+							switch(semctl( s_id , ((riga + 1) * SO_BASE) + colonna, GETVAL )){
 								case 0:
-									i++;
+									i++; /* da vedere */
 									break;
 								case 1: /* pedina libera */
-									scacchiera->scacchiera[riga][colonna].pedinaOccupaCella = 0;
+									scacchiera->scacchiera[riga][colonna].pedinaOccupaCella = 0;  /* da invertire */
 									scacchiera -> scacchiera[riga][colonna].pedina_pid = 0;
 									scacchiera -> scacchiera[riga][colonna].pedina = 0;
 									sops.sem_num = (riga * SO_BASE) + colonna;
 									sops.sem_flg = IPC_NOWAIT;
 									sops.sem_op = 1;
+									GESTISCI_RISORSE_AND_CHECK(s_id, &sops, 1);
+									printf("ok");
 									nanosleep (& my_time , NULL );
 									sops.sem_num = (riga + 1 * SO_BASE) + colonna;
 									sops.sem_flg = IPC_NOWAIT;
 									sops.sem_op = -1;
+									GESTISCI_RISORSE_AND_CHECK(s_id, &sops, 1);
 									scacchiera->scacchiera[riga + 1][colonna].pedinaOccupaCella = 1;
 									scacchiera -> scacchiera[riga + 1][colonna].pedina_pid = getpid();
 									scacchiera -> scacchiera[riga + 1][colonna].pedina = getppid();
@@ -154,7 +182,7 @@ int main(int argc, char * argv[], char * envp[]){
 						if(riga == 0)      /*caso in cui la pedina è già all' estremo inferiore */
 							i++;  /* vado avanti con le istruzioni */
 						else
-							switch(( s_id , ((riga - 1) * SO_BASE) + colonna, GETVAL )){
+							switch(semctl( s_id , ((riga - 1) * SO_BASE) + colonna, GETVAL )){
 								case 0:
 									i++;
 									break;
@@ -165,10 +193,12 @@ int main(int argc, char * argv[], char * envp[]){
 									sops.sem_num = (riga * SO_BASE) + colonna;
 									sops.sem_flg = IPC_NOWAIT;
 									sops.sem_op = 1;
+									GESTISCI_RISORSE_AND_CHECK(s_id, &sops, 1);
 									nanosleep (& my_time , NULL );
 									sops.sem_num = (riga - 1 * SO_BASE) + colonna;
 									sops.sem_flg = IPC_NOWAIT;
 									sops.sem_op = -1;
+									GESTISCI_RISORSE_AND_CHECK(s_id, &sops, 1);
 									scacchiera->scacchiera[riga - 1][colonna].pedinaOccupaCella = 1;
 									scacchiera -> scacchiera[riga - 1][colonna].pedina_pid = getpid();
 									scacchiera -> scacchiera[riga - 1][colonna].pedina = getppid();
@@ -186,7 +216,7 @@ int main(int argc, char * argv[], char * envp[]){
 						if(colonna == (SO_BASE - 1))      /*caso in cui la pedina è già all' estremo destro della cella */
 							i++;  /* vado avanti con le istruzioni */
 						else
-							switch(( s_id , ((riga) * SO_BASE) + colonna + 1, GETVAL )){
+							switch(semctl( s_id , ((riga) * SO_BASE) + colonna + 1, GETVAL )){
 								case 0:
 									i++;
 									break;
@@ -197,10 +227,12 @@ int main(int argc, char * argv[], char * envp[]){
 									sops.sem_num = (riga * SO_BASE) + colonna;
 									sops.sem_flg = IPC_NOWAIT;
 									sops.sem_op = 1;
+									GESTISCI_RISORSE_AND_CHECK(s_id, &sops, 1);
 									nanosleep (& my_time , NULL );
 									sops.sem_num = (riga * SO_BASE) + colonna + 1;
 									sops.sem_flg = IPC_NOWAIT;
 									sops.sem_op = -1;
+									GESTISCI_RISORSE_AND_CHECK(s_id, &sops, 1);
 									scacchiera->scacchiera[riga][colonna+1].pedinaOccupaCella = 1;
 									scacchiera -> scacchiera[riga][colonna+1].pedina_pid = getpid();
 									scacchiera -> scacchiera[riga][colonna+1].pedina = getppid();
@@ -218,7 +250,7 @@ int main(int argc, char * argv[], char * envp[]){
 						if(colonna == 0)      /*caso in cui la pedina è già all' estremo inferiore della cella */
 							i++;  /* vado avanti con le istruzioni */
 						else
-							switch(( s_id , ((riga) * SO_BASE) + colonna - 1, GETVAL )){
+							switch(semctl( s_id , ((riga) * SO_BASE) + colonna - 1, GETVAL )){
 								case 0:
 									i++;
 									break;
@@ -229,10 +261,12 @@ int main(int argc, char * argv[], char * envp[]){
 									sops.sem_num = (riga * SO_BASE) + colonna;
 									sops.sem_flg = IPC_NOWAIT;
 									sops.sem_op = 1;
+									GESTISCI_RISORSE_AND_CHECK(s_id, &sops, 1);
 									nanosleep (& my_time , NULL );
 									sops.sem_num = (riga * SO_BASE) + colonna - 1;
 									sops.sem_flg = IPC_NOWAIT;
 									sops.sem_op = -1;
+									GESTISCI_RISORSE_AND_CHECK(s_id, &sops, 1);
 									scacchiera->scacchiera[riga][colonna-1].pedinaOccupaCella = 1;
 									scacchiera -> scacchiera[riga][colonna-1].pedina_pid = getpid();
 									scacchiera -> scacchiera[riga][colonna-1].pedina = getppid();
