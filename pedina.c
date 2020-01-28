@@ -106,9 +106,7 @@ int main(int argc, char * argv[], char * envp[]){
 	
 	
 	
-	printf("[PEDINA %5d] Attesa del semaforo ID_PLAY \n", getpid());
-	reserveSem(s_id, ID_PLAY);
-	printf("[PEDINA %5d] Ottenuto semaforo ID_PLAY \n", getpid());
+	
 
 	printf("[PEDINA %5d] Devo leggere la coda di mio padre %5d \n", getpid(), getppid());
 	queue_id = msgget(getppid(), IPC_CREAT | 0600);
@@ -144,28 +142,104 @@ int main(int argc, char * argv[], char * envp[]){
 		/* ciclo infinito in attesa che il master inizi la partita*/
 	}
 	
+
+
+	printf("[PEDINA %5d] Attesa del semaforo ID_PLAY \n", getpid());
+	reserveSem(s_id, ID_PLAY);
+	printf("[PEDINA %5d] Ottenuto semaforo ID_PLAY \n", getpid());
+	
+
+
+	/* da qui si muovono le pedine */
+
+	while(mosse_residue){
 	for(i=0; i<abs(distanza_righe); i++){
-		reserveSem(s_id, riga_pedina+colonna_pedina+i);
-		if(distanza_colonne > 0) /*distanza riga positiva --> devo SALIRE*/
-			riga_pedina--;
-		else
-			riga_pedina++;	/*distanza colonna negativa --> devo SCENDERE*/
+		
+		if(distanza_righe > 0) {/*distanza riga positiva --> devo SCENDERE*/
+			reserveSem(s_id, ((riga_pedina -1) * SO_BASE) + colonna_pedina);
+			scacchiera->scacchiera[riga_pedina][colonna_pedina].pedinaOccupaCella = 0;  /* da invertire */
+			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina_pid = 0;
+			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina = 0;
+			releaseSem(s_id, (riga_pedina) * SO_BASE) + colonna_pedina);
+			nanosleep (& my_time , NULL );
+			riga_pedina--; 
+			scacchiera->scacchiera[riga_pedina][colonna_pedina].pedinaOccupaCella = 1;  /* da invertire */
+			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina_pid = getpid();
+			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina = getppid();
+			if(scacchiera -> scacchiera[riga_pedina][colonna_pedina].bandierina){
+				/* aggiornare posizione bandierine sul vettore presente in scacchiera */
+				/*prendere punteggio */
+				scacchiera -> scacchiera[riga_pedina][colonna_pedina].bandierina = 0;
+				scacchiera -> scacchiera.numero_bandierine--;
+			}
+			}
+			/*gestire tutta la parte dello spostamento */
+		else {
+			reserveSem(s_id, ((riga_pedina +1) * SO_BASE) + colonna_pedina);
+			scacchiera->scacchiera[riga_pedina][colonna_pedina].pedinaOccupaCella = 0;  /* da invertire */
+			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina_pid = 0;
+			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina = 0;
+			releaseSem(s_id, (riga_pedina) * SO_BASE) + colonna_pedina);
+			nanosleep (& my_time , NULL );
+			riga_pedina++; 
+			scacchiera->scacchiera[riga_pedina][colonna_pedina].pedinaOccupaCella = 1;  /* da invertire */
+			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina_pid = getpid();
+			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina = getppid();	/*distanza riga negativa --> devo SALIRE*/
+			if(scacchiera -> scacchiera[riga_pedina][colonna_pedina].bandierina){
+				/* aggiornare posizione bandierine sul vettore presente in scacchiera */
+				/*prendere punteggio */
+				scacchiera[riga_pedina][colonna_pedina].bandierina = 0;
+				scacchiera -> scacchiera.numero_bandierine--;
+			}
+			}
 		mosse_residue--;
-		releaseSem(s_id, riga_pedina+colonna_pedina+i);
+
 	}
 	
 	for(j=0; j<abs(distanza_colonne); j++){
-		/*muovo la pedina ma prima devo verificare che il semaforo della cella sia libero*/
-		reserveSem(s_id, riga_pedina+colonna_pedina+j);
-		/*sops.sem_num = riga_pedina+colonna_pedina+i+j;
-		sops.sem_op = -1;
-		semop(s_id, &sops, 1);*/
-		if(distanza_colonne > 0) /*distanza colonna positiva --> devo andare a SINISTRA*/
-			colonna_pedina--;
-		else
-			colonna_pedina++;	/*distanza colonna negativa --> devo andare a DESTRA*/
+		if(distanza_colonne > 0){ /*distanza colonna positiva --> devo andare a SINISTRA*/
+			reserveSem(s_id, ((riga_pedina) * SO_BASE) + colonna_pedina - 1);
+			scacchiera->scacchiera[riga_pedina][colonna_pedina].pedinaOccupaCella = 0;  /* da invertire */
+			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina_pid = 0;
+			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina = 0;
+			releaseSem(s_id, (riga_pedina) * SO_BASE) + colonna_pedina);
+			nanosleep (& my_time , NULL );
+			colonna_pedina--; 
+			scacchiera->scacchiera[riga_pedina][colonna_pedina].pedinaOccupaCella = 1;  /* da invertire */
+			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina_pid = getpid();
+			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina = getppid();
+			if(scacchiera -> scacchiera[riga_pedina][colonna_pedina].bandierina){
+				/* aggiornare posizione bandierine sul vettore presente in scacchiera */
+				/*prendere punteggio */
+				scacchiera[riga_pedina][colonna_pedina].bandierina = 0;
+				scacchiera -> scacchiera.numero_bandierine--;
+			}
+			}
+		else    {
+			reserveSem(s_id, ((riga_pedina) * SO_BASE) + colonna_pedina + 1);
+			scacchiera->scacchiera[riga_pedina][colonna_pedina].pedinaOccupaCella = 0;  /* da invertire */
+			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina_pid = 0;
+			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina = 0;
+			releaseSem(s_id, (riga_pedina) * SO_BASE) + colonna_pedina);
+			colonna_pedina++; 
+			nanosleep (& my_time , NULL );
+			scacchiera->scacchiera[riga_pedina][colonna_pedina].pedinaOccupaCella = 1;  /* da invertire */
+			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina_pid = getpid();
+			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina = getppid();	/*distanza colonna negativa --> devo andare a DESTRA*/
+			if(scacchiera -> scacchiera[riga_pedina][colonna_pedina].bandierina){
+				/* aggiornare posizione bandierine sul vettore presente in scacchiera */
+				/*prendere punteggio */
+				scacchiera[riga_pedina][colonna_pedina].bandierina = 0;
+				scacchiera -> scacchiera.numero_bandierine--;
+			}
+			}
 		mosse_residue--;
-		releaseSem(s_id, riga_pedina+colonna_pedina+j);
+		
+	}
+	if(scacchiera -> scacchiera.numero_bandierine == 0){
+		kill ( scacchiera->scacchiera.pid_master, SIGUSR1 );
+		TEST_ERROR;
+	}
 	}
 	printf("[PEDINA %5d] pedina si trova su riga %d colonna %d mosse residue %d \n", getpid(), riga_pedina, colonna_pedina, mosse_residue);
 	
@@ -173,6 +247,26 @@ int main(int argc, char * argv[], char * envp[]){
 	exit(0);
 }
 
+
+void handle_signal(int signal){
+	switch(signal){
+		case SIGINT:
+			/* to be manged */
+			break;
+		case SIGALRM:
+			print_status();
+			/* deallocazione della memoria condivisa*/
+			/*fine del programma*//* to be manged */
+			break;
+		case EAGAIN:
+			/*printf("Ricevuto segnale EAGAIN \n");*/
+			break;
+		case SIGUSR1:
+				
+			break;
+		case SIGUSR2:
+			break;
+	}
 
 
 

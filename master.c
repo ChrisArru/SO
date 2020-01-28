@@ -38,7 +38,8 @@ void handle_signal(int signal){
 		case EAGAIN:
 			/*printf("Ricevuto segnale EAGAIN \n");*/
 			break;
-		case SIGUSR1:
+		case SIGUSR1: /* segnale ricevuto da pedine (bandierine finite) */
+			/*devo terminare il round, stampa status, piazza altre bandierine e avvia un altro round */
 			break;
 		case SIGUSR2:
 			break;
@@ -69,6 +70,8 @@ void initSharedMem(memoria_condivisa * scacchiera){
 			scacchiera->scacchiera[i][j].pedinaOccupaCella = 0; /* 0 = cella libera 1 = cella occupata da pedina*/
 			scacchiera->scacchiera[i][j].pedina = 0;
 			scacchiera->scacchiera[i][j].pedina_pid= 0;
+			scacchiera->scacchiera[i][j].numero_round = 0;
+			scacchiera->scacchiera[i][j].numero_bandierine = 0;
 		}
 	}
 }
@@ -81,9 +84,15 @@ void print_status(){
 	- Posizione delle bandierine (valore)
 	- Punteggio attuale giocatori
 	- Mosse residue a disposizione
+	- Tempo totale di gioco
+	- Numero di round giocati
+	- Da implementare un timer per il tempo totale di gioco
+	
+	
 	*/
 	int i,j;
 	printf("[MASTER]: PRINT STATUS:\n");
+	printf("Il numero dei round è: \n", scacchiera->scacchiera.numero_round);
 	for(i=0; i<SO_NUM_G; i++){
 		printf("Punteggio giocatore %d \n", scacchiera->punteggio[i]);
 		printf("Mosse residue %d \n", scacchiera->mosse[i]);
@@ -192,6 +201,7 @@ int main(){
     printf("[MASTER] Dimensione Scacchiera %d \n", sizeof(*scacchiera->scacchiera));*/
 	
 	initSharedMem(scacchiera);
+	scacchiera->scacchiera.pid_master = getpid();
 	/*printf("[MASTER] Pedina occupa cella %d \n", scacchiera->scacchiera[1].pedinaOccupaCella);
 	printf("[MASTER] Pedina occupa cella %d \n", scacchiera->scacchiera[1]);*/
 	
@@ -382,8 +392,11 @@ int main(){
 	sops.sem_op = (SO_NUM_P*SO_NUM_G);
 	semop(sem_id, &sops, 1);
 	
-
-	/*alarm(SO_MAX_TIME);*/
+	/* da qui deve partire il timer e le pedine si devono muovere */
+	
+	alarm(SO_MAX_TIME);
+	
+	
 	/*exit(0);*/
 	
 	while(child_pid = wait(&status) != -1){
