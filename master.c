@@ -83,7 +83,7 @@ void print_status(){
 	- Mosse residue a disposizione
 	*/
 	int i,j;
-	
+	printf("[MASTER]: PRINT STATUS:\n");
 	for(i=0; i<SO_NUM_G; i++){
 		printf("Punteggio giocatore %d \n", scacchiera->punteggio[i]);
 		printf("Mosse residue %d \n", scacchiera->mosse[i]);
@@ -99,7 +99,7 @@ void print_status(){
 	}*/
 	
 	for(i=0; i<SO_FLAG_MAX; i++)
-		printf("Posizione bandierina numero %d riga %d colonna %d", i, scacchiera->posBandierine[i][0], scacchiera->posBandierine[i][1]);
+		printf("Posizione bandierina numero %d riga %d colonna %d\n", i, scacchiera->posBandierine[i][0], scacchiera->posBandierine[i][1]);
 	
 	for(i = 0; i<SO_ALTEZZA; i++){
 		for(j = 0; j<SO_BASE; j++){
@@ -124,7 +124,9 @@ void print_status(){
 				printf("0");
 			printf("\033[0m"); /*reset color*/
 		}
+		printf("\n");
 	}
+	printf("-----------------------------------------\n");
 }
 
 
@@ -377,7 +379,7 @@ int main(){
 	
 	/*releaseSem(sem_id, ID_PLAY);*/
 	sops.sem_num = ID_PLAY;
-	sops.sem_op = -(SO_NUM_P*SO_NUM_G);
+	sops.sem_op = (SO_NUM_P*SO_NUM_G);
 	semop(sem_id, &sops, 1);
 	
 
@@ -385,7 +387,7 @@ int main(){
 	/*exit(0);*/
 	
 	while(child_pid = wait(&status) != -1){
-		dprintf(2, "PID=%d, Sender (PID=%d) status =",
+		dprintf(2, "PID=%d, Sender (PID=%d) status =%d \n",
 		getpid(),
 		child_pid,
 		status);

@@ -15,14 +15,10 @@
 #include "header.h"
 #define PEDINA "pedina"
 
-
-/* spostamento SOPRA = 1
-   spostamento GIU = 2
-   spostamento DESTRA = 3
-   spostamento SINISTRA = 4 */
 void handle_signal(int signal);
 int check_player(pid_t player_pid, memoria_condivisa * scacchiera);
-char* check_target(int riga_pedina, int colonna_pedina, memoria_condivisa * scacchiera);
+/*char* check_target(int riga_pedina, int colonna_pedina, memoria_condivisa * scacchiera);*/
+int *check_target(int riga_pedina, int colonna_pedina, memoria_condivisa * scacchiera);
 
 int main(int argc, char * argv[], char * envp[]){
 	int m_id, s_id;
@@ -144,7 +140,7 @@ int main(int argc, char * argv[], char * envp[]){
 	{
 	    /*printf("%d \n", semctl(s_id, ID_PEDINE, GETVAL));*/
 		printf("[GIOCATORE] %5d Pedine da disporre %d. Riservo semaforo ID_PEDINE \n", my_pid, pedine_disposte);
-		  
+		reserveSem(s_id, ID_PEDINE);
 		/*sops.sem_num = ID_PEDINE;*/
 		/*sops.sem_flg = IPC_NOWAIT;*/
 		/*sops.sem_op = -1;
@@ -152,8 +148,8 @@ int main(int argc, char * argv[], char * envp[]){
 		printf("[GIOCATORE] %5d Superato semaforo ID_PEDINE\n", my_pid);
 		/*se sono qui la pedina è libera di muoversi perchè ha il semaforo*/
 		/*printf("[GIOCATORE] %5d Cella %d %d Occupata ? %d \n", my_pid, scacchiera->rigaRand,scacchiera->colonnaRand,scacchiera->scacchiera[scacchiera->rigaRand][scacchiera->colonnaRand].pedinaOccupaCella);*/
-		if (scacchiera->scacchiera[scacchiera->rigaRand][scacchiera->colonnaRand].pedinaOccupaCella == 0  /* altro controllo sul semaforo */){
-			reserveSem(s_id, ID_PEDINE);  /* prima era fuori */
+		if (scacchiera->scacchiera[scacchiera->rigaRand][scacchiera->colonnaRand].pedinaOccupaCella == 0 ){
+			
 			
 			/*scacchiera->indice ++;*/
 			switch(value = fork()){
@@ -183,16 +179,14 @@ int main(int argc, char * argv[], char * envp[]){
 			/*getchar();*/
 			scacchiera->scacchiera[scacchiera->rigaRand][scacchiera->colonnaRand].pedina = my_pid; /*getpid();*/ /*messo qui e non dentro la fork() prendo il pid del padre*/
 			scacchiera->scacchiera[scacchiera->rigaRand][scacchiera->colonnaRand].pedina_pid = value;
-			/*getstione dei semafori*/
-			sops.sem_num = (scacchiera->rigaRand * SO_BASE) + scacchiera->colonnaRand;
-			sops.sem_flg = IPC_NOWAIT;
-			sops.sem_op = -1;	
-
-
-	
 			pedine_disposte--;
-			j++; /*????*/
+			
+			/*scacchiera->posizionePedina[j][0] = scacchiera->rigaRand;
+			scacchiera->posizionePedina[j][1] = scacchiera->colonnaRand;
+			j++;*/
+			
 			printf("[GIOCATORE] %5d Pedine disposte %d su riga %d colonna %d \n", my_pid, pedine_disposte, scacchiera->rigaRand,scacchiera->colonnaRand);
+			
 			/*printf("[GIOCATORE] Rilascio semaforo ID_PEDINE \n");*/
 		   
 		}
@@ -204,7 +198,7 @@ int main(int argc, char * argv[], char * envp[]){
 		/*getchar();*/
 		/*printf("[GIOCATORE] %5d scacchiera indice %d \n", my_pid, scacchiera->indice);
 		printf("[GIOCATORE] %5d Rilascio semaforo ID_PEDINE \n", my_pid);*/
-		releaseSem(s_id, ID_PEDINE);  /* non ho capito */
+		releaseSem(s_id, ID_PEDINE);
 		
 		/*sops.sem_flg = IPC_NOWAIT;*/
 		/*sops.sem_num = ID_PEDINE;
@@ -229,8 +223,7 @@ int main(int argc, char * argv[], char * envp[]){
 	
 	
 	
-	for(prova = 0; prova < 2; prova++){
-	
+	for(prova = 0; prova < 1; prova++){
 		/* ciclo infinito in attesa che il master inizi la partita
 		Una volta ricevuta comunicazione dal master dell'inizio del round devo dare indicazione alle mie pedine
 		su come muoversi
@@ -257,10 +250,13 @@ int main(int argc, char * argv[], char * envp[]){
 					
 					/*strcpy(pedina_indicazioni, check_target(i,j, scacchiera));*/
 					/*printf("%s \n", check_target(i,j, scacchiera));*/
-					
+					int *distanza;
+					distanza=check_target(i,j, scacchiera);
+					printf("distanza righe %d \n: ", distanza[0]);
+					printf("distanza colonne %d \n: ", distanza[1]);
 					my_msg.mtype = scacchiera->scacchiera[i][j].pedina_pid; /*deve essere >0. Posso forzarlo al pid della pedina per determinare quale processo deve leggere il messaggio */
 					printf("pid del figlio: %5d \n", scacchiera->scacchiera[i][j].pedina_pid);
-					num_bytes = sprintf(my_msg.mtext, "%s", check_target(i,j, scacchiera));
+					num_bytes = sprintf(my_msg.mtext, "%d %d %d %d", distanza[0], distanza[1], i, j);
 					num_bytes++; /*bisogna tener conto del "/0" finale per terminazione stringa */
 			
 					msgsnd(queue_id, &my_msg, /*sizeof(my_msg)*/num_bytes, 0); /*invio il messaggio*/
@@ -272,10 +268,9 @@ int main(int argc, char * argv[], char * envp[]){
 		}
 		
 		releaseSem(s_id, ID_MOVE);
-		printf("[GIOCATORE %5d] Ottenuto semaforo ID_MOVE \n", getpid());
+		printf("[GIOCATORE %5d] Rilasciato semaforo ID_MOVE \n", getpid());
 		releaseSem(s_id, ID_READY_TO_PLAY);
-	}
-		
+		}
 	exit(0);
 }
 
@@ -309,12 +304,20 @@ int check_player(pid_t player_pid, memoria_condivisa * scacchiera){
 		return 3;
 }
 
-char* check_target(int riga_pedina, int colonna_pedina, memoria_condivisa * scacchiera){
+/*char* check_target(int riga_pedina, int colonna_pedina, memoria_condivisa * scacchiera){*/
+int *check_target(int riga_pedina, int colonna_pedina, memoria_condivisa * scacchiera){
 	/*determino dov'è la bandierina rispetto alla pedina selezionata*/
-	int i;
-	signed int distanza[40][2];
+	int j,i;
+	/*signed int distanza[40][2];*/
+	signed int **distanza;
 	int min_dist, target;
 	static char str[500];
+    distanza = malloc(sizeof(int*) * 40);
+     
+    for(i = 0; i < 40; i++) {
+        distanza[i] = malloc(sizeof(int*) * 2);
+    }
+
 	
 	str[0] = '\0';
 	 
@@ -325,7 +328,7 @@ char* check_target(int riga_pedina, int colonna_pedina, memoria_condivisa * scac
 		distanza[i][1] = colonna_pedina - scacchiera->posBandierine[i][1];
 	}
 
-	min_dist = abs(distanza[0][0]) + abs(distanza[0][1]); 
+	min_dist = abs(distanza[0][0]) + abs(distanza[0][1]);
 	
 	printf("la pedina %5d si trova su riga %d e colonna %d \n", scacchiera->scacchiera[riga_pedina][colonna_pedina].pedina_pid, riga_pedina, colonna_pedina);
 	for (i=0; i<5; i++){
@@ -336,37 +339,6 @@ char* check_target(int riga_pedina, int colonna_pedina, memoria_condivisa * scac
 			target = i;
 		}
 	}
-	printf("La bandierina più vicina è la numero %d con distanza %d %d %d \n", target, min_dist, distanza[target][0], distanza[target][1] );
-	/*traduco queste distanze in informazioni per la pedina*/
-	if(distanza[target][0] > 0){ /*distanza sulla riga positiva --> devo SALIRE per arrivare alla pedina*/
-		strcpy(str, "1");
-		for(i=0; i<distanza[target][0]-1; i++ )
-			strcat(str, "1");
-	}
-	else if(distanza[target][0] < 0){ /*distanza sulla riga negativa --> devo SCENDERE per arrivare alla pedina*/
-		strcpy(str, "2");
-		for(i=0; i<abs(distanza[target][0])-1; i++ )
-			strcat(str, "2");
-	}
-	
-	if(distanza[target][1] > 0){ /*distanza sulla colonna positiva --> devo andare a SINISTRA per arrivare alla pedina*/
-		if(str[0] != '\0') /*potrebbe essere che non entro nelle if sopra perchè distanza righe = 0*/
-			strcat(str, "4"); /*qua uso strcat e non strcpy perchè la stringa è già riempita con le informazioni sopra*/
-		else
-			strcpy(str, "4");
-		for(i=0; i<distanza[target][1]-1; i++ )
-			strcat(str, "4");
-	}
-	else if(distanza[target][1] < 0){ /*distanza sulla colonna negativa --> devo andare a DESTRA per arrivare alla pedina*/
-		if(str[0] != '\0') /*potrebbe essere che non entro nelle if sopra perchè distanza righe = 0*/
-			strcat(str, "3"); /*qua uso strcat e non strcpy perchè la stringa è già riempita con le informazioni sopra*/
-		else
-			strcpy(str, "3");
-		for(i=0; i<abs(distanza[target][1])-1; i++ )
-			strcat(str, "3");
-	}
-	
-	printf("Informazioni da manadre alla pedina %s \n", str);
-	
-	return str;
+	printf("La bandierina più vicina è la numero %d con distanza righe %d colonne %d \n", target, distanza[target][0], distanza[target][1] );
+	return distanza[target];
 }
