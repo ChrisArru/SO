@@ -219,11 +219,11 @@ int main(int argc, char * argv[], char * envp[]){
 	 * can be  marked for deletion.  Remember: it will  be deleted
 	 * only when all processes are detached from it!!
 	 */
-	shmctl(m_id, IPC_RMID, NULL);
 	
 	
 	
-	while(1){
+	
+	for(prova = 0; prova < 1; prova++){
 		/* ciclo infinito in attesa che il master inizi la partita
 		Una volta ricevuta comunicazione dal master dell'inizio del round devo dare indicazione alle mie pedine
 		su come muoversi
@@ -260,7 +260,6 @@ int main(int argc, char * argv[], char * envp[]){
 					num_bytes++; /*bisogna tener conto del "/0" finale per terminazione stringa */
 			
 					msgsnd(queue_id, &my_msg, /*sizeof(my_msg)*/num_bytes, 0); /*invio il messaggio*/
-					
 					printf("[GIOCATORE %5d]Ho scritto %s a mio figlio %d \n", getpid(), &my_msg.mtext, scacchiera->scacchiera[i][j].pedina_pid);
 					TEST_ERROR;
 				}
@@ -271,6 +270,7 @@ int main(int argc, char * argv[], char * envp[]){
 		printf("[GIOCATORE %5d] Rilasciato semaforo ID_MOVE \n", getpid());
 		releaseSem(s_id, ID_READY_TO_PLAY);
 		}
+		shmctl(m_id, IPC_RMID, NULL);
 	exit(0);
 }
 

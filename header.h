@@ -25,6 +25,7 @@ per la gestione dei processi
 #define ID_READY_TO_PLAY          4806 /*Semaforo che indica che TUTTI i giocatori hanno finito di dare le indicazioni e informa MASTER che può iniziare il timer*/
 #define ID_PLAY          4807 /*Master dà inizio alla partita e pedine si muovono*/
 
+
 /* Global variables over the BSS*/
 int SO_MAX_TIME;
 int SO_NUM_G;
@@ -67,7 +68,7 @@ struct msgbuf{
 	char mtext[4800];
 };
 struct msgbuf my_msg; /* struttura per la coda dei messaggi*/
-
+struct msgbuf my_msg_bandierine;
 /*scacchiera= calloc(SO_BASE * SO_ALTEZZA, sizeof(* scacchiera)); /*free finale*/
 
 

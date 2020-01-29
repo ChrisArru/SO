@@ -39,8 +39,8 @@
 	
 
 int main(int argc, char * argv[], char * envp[]){
-	int m_id, s_id, queue_id, num_bytes;
-	int i, j, riga_pedina, colonna_pedina, mosse_residue;
+	int m_id, s_id, queue_id, queue_id_bandierine, num_bytes, num_bytes_bandierine;
+	int i, j, riga_pedina, colonna_pedina, mosse_residue, indice;
 	struct memoria_condivisa * scacchiera;
 	pid_t my_pid;
 	char comando[80];
@@ -69,8 +69,16 @@ int main(int argc, char * argv[], char * envp[]){
 	/*setto il tempo per la nanosleep */
 	my_time.tv_sec = 0;
 	my_time.tv_nsec = SO_MIN_HOLD_NSEC;
-
 	
+			
+
+
+	/* mi trovo l'indice in cui è posizionato il mio giocatore */
+	for(i = 0; i < 3; i++){
+		if(scacchiera -> giocatori[i] == getppid())
+			indice = i;
+	}
+	queue_id_bandierine = msgget(scacchiera->pid_master, IPC_CREAT | 0600);
 	/*inizializzo il vettore dei comandi */
 	for(i = 0; i < sizeof(comando)/sizeof(int); i++)
 		comando[i] = 0;
@@ -102,7 +110,7 @@ int main(int argc, char * argv[], char * envp[]){
 	 * only when all processes are detached from it!!
 	 */
 	
-	shmctl(m_id, IPC_RMID, NULL);
+	
 	
 	
 	
@@ -116,6 +124,7 @@ int main(int argc, char * argv[], char * envp[]){
 	distanza_righe = 0;
 	
 	while((num_bytes = msgrcv(queue_id, &my_msg, sizeof(my_msg), getpid(), IPC_NOWAIT)) != -1){
+		printf("entrato nel ciclo [PEDINA]");
 		if(num_bytes >= 0)
 		{
 			printf("[PEDINA %5d] MESSAGGIO RICEVUTO = %s \n", getpid(), my_msg.mtext);
@@ -167,10 +176,11 @@ int main(int argc, char * argv[], char * envp[]){
 			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina_pid = getpid();
 			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina = getppid();
 			if(scacchiera -> scacchiera[riga_pedina][colonna_pedina].bandierina){
-				/* aggiornare posizione bandierine sul vettore presente in scacchiera */
-				/*prendere punteggio */
-				scacchiera -> scacchiera[riga_pedina][colonna_pedina].bandierina = 0;
-				scacchiera -> numero_bandierine--;
+				my_msg_bandierine.mtype = scacchiera->pid_master;
+				
+				num_bytes_bandierine = sprintf(my_msg_bandierine.mtext, "%5d %d %d %u", getppid(), riga_pedina, colonna_pedina, scacchiera -> scacchiera[riga_pedina][colonna_pedina].bandierina);
+				num_bytes_bandierine++;
+				msgsnd(queue_id_bandierine, &my_msg_bandierine, /*sizeof(my_msg)*/num_bytes_bandierine, 0);
 			}
 			}
 			/*gestire tutta la parte dello spostamento */
@@ -186,13 +196,16 @@ int main(int argc, char * argv[], char * envp[]){
 			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina_pid = getpid();
 			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina = getppid();	/*distanza riga negativa --> devo SALIRE*/
 			if(scacchiera -> scacchiera[riga_pedina][colonna_pedina].bandierina){
-				/* aggiornare posizione bandierine sul vettore presente in scacchiera */
-				/*prendere punteggio */
-				scacchiera -> scacchiera[riga_pedina][colonna_pedina].bandierina = 0;
-				scacchiera -> numero_bandierine--;
+				my_msg_bandierine.mtype = scacchiera->pid_master;
+				
+				num_bytes_bandierine = sprintf(my_msg_bandierine.mtext, "%5d %d %d %u", getppid(), riga_pedina, colonna_pedina, scacchiera -> scacchiera[riga_pedina][colonna_pedina].bandierina);
+				num_bytes_bandierine++;
+				msgsnd(queue_id_bandierine, &my_msg_bandierine, /*sizeof(my_msg)*/num_bytes_bandierine, 0);
 			}
 			}
+		
 		mosse_residue--;
+		scacchiera -> mosse[indice]--;
 
 	}
 	
@@ -211,8 +224,11 @@ int main(int argc, char * argv[], char * envp[]){
 			if(scacchiera -> scacchiera[riga_pedina][colonna_pedina].bandierina){
 				/* aggiornare posizione bandierine sul vettore presente in scacchiera */
 				/*prendere punteggio */
-				scacchiera -> scacchiera[riga_pedina][colonna_pedina].bandierina = 0;
-				scacchiera -> numero_bandierine--;
+				my_msg_bandierine.mtype = scacchiera->pid_master;
+				
+				num_bytes_bandierine = sprintf(my_msg_bandierine.mtext, "%5d %d %d", getppid(), riga_pedina, colonna_pedina);
+				num_bytes_bandierine++;
+				msgsnd(queue_id_bandierine, &my_msg_bandierine, /*sizeof(my_msg)*/num_bytes_bandierine, 0);
 			}
 			}
 		else    {
@@ -228,14 +244,23 @@ int main(int argc, char * argv[], char * envp[]){
 			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina = getppid();	/*distanza colonna negativa --> devo andare a DESTRA*/
 			if(scacchiera -> scacchiera[riga_pedina][colonna_pedina].bandierina){
 				/* aggiornare posizione bandierine sul vettore presente in scacchiera */
-				/*prendere punteggio */
-				scacchiera -> scacchiera[riga_pedina][colonna_pedina].bandierina = 0;
-				scacchiera -> numero_bandierine--;
-			}
+				/*prendere punteggio */ /* coda di messaggi da mandare al master per aggiornare il tutto */
+				my_msg_bandierine.mtype = scacchiera->pid_master;
+				
+				num_bytes_bandierine = sprintf(my_msg_bandierine.mtext, "%5d %d %d %u", getppid(), riga_pedina, colonna_pedina, scacchiera -> scacchiera[riga_pedina][colonna_pedina].bandierina);
+				num_bytes_bandierine++;
+				msgsnd(queue_id_bandierine, &my_msg_bandierine, /*sizeof(my_msg)*/num_bytes_bandierine, 0);
+				/*   lo deve fare il master
+					scacchiera -> scacchiera[riga_pedina][colonna_pedina].bandierina = 0;
+					scacchiera -> numero_bandierine--;
+				*/
+			}	
 			}
 		mosse_residue--;
 		
 	}
+
+	
 	#if 0
 	if(scacchiera->numero_bandierine == 0){
 		kill( scacchiera->pid_master, SIGUSR1 );
@@ -245,7 +270,7 @@ int main(int argc, char * argv[], char * envp[]){
 	}
 	printf("[PEDINA %5d] pedina si trova su riga %d colonna %d mosse residue %d \n", getpid(), riga_pedina, colonna_pedina, mosse_residue);
 	
-	
+	shmctl(m_id, IPC_RMID, NULL);
 	exit(0);
 }
 

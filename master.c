@@ -57,10 +57,11 @@ void initSharedMem(memoria_condivisa * scacchiera){
 	int i, j;
 	scacchiera->rigaRand = 0;
 	scacchiera->colonnaRand = 0;
-	
+	scacchiera-> pid_master = 0;
+	scacchiera -> numero_round = 0;
 	for(i=0; i<SO_NUM_G; i++){
 		scacchiera->punteggio[i] = 0;
-		scacchiera->mosse[i] = SO_N_MOVES;
+		scacchiera->mosse[i] = SO_N_MOVES * SO_NUM_P; /* ho moltiplicato il numero delle mosse per pedina per il numero dei giocatori */
 	}
 	
 	for(i = 0; i<SO_ALTEZZA; i++){
@@ -140,13 +141,14 @@ void print_status(){
 int main(){
 	unsigned int count_round = 0;
 	pid_t value, child_pid;
-	int sem_id, queue_id;
+	int sem_id, queue_id, queue_id_bandierine;
 	int m_id;
 	int i,j, index;
 	int status;
-	int num_bytes; /*dimensione messaggi per la coda*/
-	unsigned int numBandierina, punteggioBandTot, punteggioBandierina;
-	
+	int num_bytes, num_bytes_bandierine; /*dimensione messaggi per la coda*/
+	unsigned int numBandierina, punteggioBandTot, punteggioBandierina, valore_bandierina;
+	pid_t giocatore_bandierina;
+	int riga_bandierina, colonna_bandierina;
 	SO_MAX_TIME = atoi(getenv("SO_MAX_TIME"));
 	SO_NUM_G = atoi(getenv("SO_NUM_G")); /*da definire funzione e metodo x make*/
 	SO_BASE = atoi(getenv("SO_BASE"));
@@ -157,7 +159,7 @@ int main(){
 	SO_ROUND_SCORE = atoi(getenv("SO_ROUND_SCORE"));
 	SO_N_MOVES = atoi(getenv("SO_N_MOVES"));
 	SO_MIN_HOLD_NSEC = atoi(getenv("SO_MIN_HOLD_NSEC"));
-	
+	char * token;
 	char s_max_time[3*sizeof(SO_MAX_TIME)+1];
 	char s_num_g[3*sizeof(SO_NUM_G)+1];
 	char s_base[3*sizeof(SO_BASE)+1];
@@ -265,7 +267,7 @@ int main(){
 	 * can be  marked for deletion.  Remember: it will  be deleted
 	 * only when all processes are detached from it!!
 	 */
-	shmctl(m_id, IPC_RMID, NULL);
+	
 	
 	printf("[MASTER] Aspetto il semaforo ID_READY \n");
 	/* Inform child processes to start writing to the shared mem */
@@ -312,7 +314,8 @@ int main(){
 	Basterà quindi controllare che scacchiera->scacchiera[scacchiera->indice].pedinaOccupaCella == 0.
 	Il numero di bandierine è un numero RANDOM compreso tra SO_FLAG_MIN e SO_FLAG_MAX */
 	
-	numBandierina = SO_FLAG_MIN + rand()%((SO_FLAG_MAX-SO_FLAG_MIN)+1) ;             /* da sistemare le bandierine */
+	numBandierina = SO_FLAG_MIN + rand()%((SO_FLAG_MAX-SO_FLAG_MIN)+1) ;    
+	scacchiera->numero_bandierine = numBandierina;         /* da sistemare le bandierine */
 	/*getchar();*/
 	/*punteggioBandTot = SO_ROUND_SCORE;
 	punteggioBandierina = rand()%punteggioBandTot+1;
@@ -324,7 +327,7 @@ int main(){
 	scacchiera->rigaRand = rand()%(SO_ALTEZZA);
 	scacchiera->colonnaRand = rand()%(SO_BASE);
 	index = 0;
-	while(numBandierina>0){
+	while(numBandierina>1){
 		if(scacchiera->scacchiera[scacchiera->rigaRand][scacchiera->colonnaRand].pedinaOccupaCella == 0){	
 			/*posizione libera da pedine*/
 			scacchiera->scacchiera[scacchiera->rigaRand][scacchiera->colonnaRand].bandierina = punteggioBandierina;
@@ -344,7 +347,24 @@ int main(){
 		scacchiera->rigaRand = rand()%(SO_ALTEZZA);
 		scacchiera->colonnaRand = rand()%(SO_BASE);
 	}
-
+	while(numBandierina > 0){
+		if(scacchiera->scacchiera[scacchiera->rigaRand][scacchiera->colonnaRand].pedinaOccupaCella == 0){	
+			/*posizione libera da pedine*/
+			scacchiera->scacchiera[scacchiera->rigaRand][scacchiera->colonnaRand].bandierina = punteggioBandierina + SO_ROUND_SCORE % scacchiera->numero_bandierine;
+			/*Mi salvo la posizione della bandierina piazzata.
+			La riga indica il numero della bandierina, la colonna conterrà la riga e la colonna della sua posizione*/
+			scacchiera->posBandierine[index][0] = scacchiera->rigaRand; 
+			scacchiera->posBandierine[index][1] = scacchiera->colonnaRand; 
+			index++;
+			numBandierina--;
+			/*punteggioBandierina = rand()%punteggioBandTot+1;
+			if(punteggioBandierina<0)
+				punteggioBandierina = 0;
+			punteggioBandTot = punteggioBandTot - punteggioBandierina;
+			printf("Punteggio bandierina %d \n", punteggioBandierina);
+			printf("Punteggio bandierine totale rimanente %d \n", punteggioBandTot);*/
+		}
+	}
 	/*Finito di posizionare le bandierine, stampo lo stato prima di far partire il timer*/
 	print_status();
 	
@@ -397,7 +417,60 @@ int main(){
 	
 	/*exit(0);*/
 	
-	while(child_pid = wait(&status) != -1){
+
+
+
+
+	/* devo ricevere la coda di messaggi da parte delle pedine (se sono state conquistate bandierine */
+	queue_id_bandierine = msgget(getpid(), IPC_CREAT | 0600);
+	while((num_bytes_bandierine = msgrcv(queue_id_bandierine, &my_msg_bandierine, sizeof(my_msg), getpid(), IPC_NOWAIT)) != -1){
+		if(num_bytes_bandierine >= 0) {/* dobbiamo incrementare il punteggio ai giocatori e rimuovere la bandierina */
+			token = strtok(my_msg_bandierine.mtext, " ");
+			/*printf("Token %s \n", token);*/
+			giocatore_bandierina =strtol(token, NULL,10);
+			token = strtok(NULL, " ");
+			/*printf("Token %s \n", token);*/
+			riga_bandierina=strtol(token, NULL,10);
+			token = strtok(NULL, " ");
+			/*printf("Token %s \n", token);*/
+			colonna_bandierina=strtol(token, NULL,10);
+			token = strtok(NULL, " ");
+			/*printf("Token %s \n", token);*/
+			valore_bandierina=strtol(token, NULL,10);
+			
+			for(i = 0; i < 3; i++){
+				if(giocatore_bandierina == scacchiera->giocatori[i])
+					scacchiera->punteggio[i] += valore_bandierina; 				
+			}
+
+
+
+		
+			scacchiera -> scacchiera[riga_bandierina][colonna_bandierina].bandierina = 0;
+			scacchiera->numero_bandierine--;
+			printf("MASTER: MI e' arrtivata una bandierina e ho aggiornato tutto");
+			if(scacchiera->numero_bandierine == 0){
+				/* (a) termina il round
+					(b) stampa lo stato secondo quanto descritto in Sezione 1.6;
+					(c) piazza le nuove bandierine e avvia un nuovo round. POSSIAMO MANDARCI UN SEGNALE*/ 
+				
+			}
+
+
+
+		}
+		else{
+			printf("[MASTER: ERRORE RICEZIONE CODA DI MESSAGGI BANDIERINE %5d %d", getpid(), errno);
+			TEST_ERROR;
+		}
+
+
+
+
+
+	}
+
+	while(child_pid = wait(&status) != -1){  /* questi exit status da capire ancora come gestirli */
 		dprintf(2, "PID=%d, Sender (PID=%d) status =%d \n",
 		getpid(),
 		child_pid,
@@ -428,6 +501,7 @@ int main(){
 
 	/*aspetta che tutti i figli mettano pedine con wait */
         /*deallocazione dei semafori*/
+	shmctl(m_id, IPC_RMID, NULL);
 	semctl ( sem_id , ID_READY , IPC_RMID );
 	
 	exit(0);
