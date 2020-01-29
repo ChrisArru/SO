@@ -223,7 +223,7 @@ int main(int argc, char * argv[], char * envp[]){
 	
 	
 	
-	for(prova = 0; prova < 1; prova++){
+	while(1){
 		/* ciclo infinito in attesa che il master inizi la partita
 		Una volta ricevuta comunicazione dal master dell'inizio del round devo dare indicazione alle mie pedine
 		su come muoversi

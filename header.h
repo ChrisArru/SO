@@ -57,6 +57,9 @@ typedef struct memoria_condivisa{
 	unsigned int mosse[4];
 	unsigned int posizionePedina[1600];
 	unsigned int posBandierine[40][2];
+	unsigned int numero_round;
+	unsigned int numero_bandierine;
+	pid_t pid_master;
 }memoria_condivisa;
 
 struct msgbuf{

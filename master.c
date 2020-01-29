@@ -70,8 +70,6 @@ void initSharedMem(memoria_condivisa * scacchiera){
 			scacchiera->scacchiera[i][j].pedinaOccupaCella = 0; /* 0 = cella libera 1 = cella occupata da pedina*/
 			scacchiera->scacchiera[i][j].pedina = 0;
 			scacchiera->scacchiera[i][j].pedina_pid= 0;
-			scacchiera->scacchiera[i][j].numero_round = 0;
-			scacchiera->scacchiera[i][j].numero_bandierine = 0;
 		}
 	}
 }
@@ -92,7 +90,7 @@ void print_status(){
 	*/
 	int i,j;
 	printf("[MASTER]: PRINT STATUS:\n");
-	printf("Il numero dei round è: \n", scacchiera->scacchiera.numero_round);
+	printf("Il numero dei round è: \n", scacchiera->numero_round);
 	for(i=0; i<SO_NUM_G; i++){
 		printf("Punteggio giocatore %d \n", scacchiera->punteggio[i]);
 		printf("Mosse residue %d \n", scacchiera->mosse[i]);
@@ -201,7 +199,7 @@ int main(){
     printf("[MASTER] Dimensione Scacchiera %d \n", sizeof(*scacchiera->scacchiera));*/
 	
 	initSharedMem(scacchiera);
-	scacchiera->scacchiera.pid_master = getpid();
+	scacchiera->pid_master = getpid();
 	/*printf("[MASTER] Pedina occupa cella %d \n", scacchiera->scacchiera[1].pedinaOccupaCella);
 	printf("[MASTER] Pedina occupa cella %d \n", scacchiera->scacchiera[1]);*/
 	
@@ -393,9 +391,9 @@ int main(){
 	semop(sem_id, &sops, 1);
 	
 	/* da qui deve partire il timer e le pedine si devono muovere */
-	
+	#if 0
 	alarm(SO_MAX_TIME);
-	
+	#endif
 	
 	/*exit(0);*/
 	

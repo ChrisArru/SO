@@ -65,7 +65,7 @@ int main(int argc, char * argv[], char * envp[]){
 	bandierina punteggio = 0;
 	signed int distanza_colonne, distanza_righe;
 	char *token;
-	
+	mosse_residue = SO_N_MOVES;
 	/*setto il tempo per la nanosleep */
 	my_time.tv_sec = 0;
 	my_time.tv_nsec = SO_MIN_HOLD_NSEC;
@@ -160,7 +160,7 @@ int main(int argc, char * argv[], char * envp[]){
 			scacchiera->scacchiera[riga_pedina][colonna_pedina].pedinaOccupaCella = 0;  /* da invertire */
 			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina_pid = 0;
 			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina = 0;
-			releaseSem(s_id, (riga_pedina) * SO_BASE) + colonna_pedina);
+			releaseSem(s_id, (riga_pedina * SO_BASE) + colonna_pedina);
 			nanosleep (& my_time , NULL );
 			riga_pedina--; 
 			scacchiera->scacchiera[riga_pedina][colonna_pedina].pedinaOccupaCella = 1;  /* da invertire */
@@ -170,7 +170,7 @@ int main(int argc, char * argv[], char * envp[]){
 				/* aggiornare posizione bandierine sul vettore presente in scacchiera */
 				/*prendere punteggio */
 				scacchiera -> scacchiera[riga_pedina][colonna_pedina].bandierina = 0;
-				scacchiera -> scacchiera.numero_bandierine--;
+				scacchiera -> numero_bandierine--;
 			}
 			}
 			/*gestire tutta la parte dello spostamento */
@@ -179,7 +179,7 @@ int main(int argc, char * argv[], char * envp[]){
 			scacchiera->scacchiera[riga_pedina][colonna_pedina].pedinaOccupaCella = 0;  /* da invertire */
 			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina_pid = 0;
 			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina = 0;
-			releaseSem(s_id, (riga_pedina) * SO_BASE) + colonna_pedina);
+			releaseSem(s_id, (riga_pedina * SO_BASE) + colonna_pedina);
 			nanosleep (& my_time , NULL );
 			riga_pedina++; 
 			scacchiera->scacchiera[riga_pedina][colonna_pedina].pedinaOccupaCella = 1;  /* da invertire */
@@ -188,8 +188,8 @@ int main(int argc, char * argv[], char * envp[]){
 			if(scacchiera -> scacchiera[riga_pedina][colonna_pedina].bandierina){
 				/* aggiornare posizione bandierine sul vettore presente in scacchiera */
 				/*prendere punteggio */
-				scacchiera[riga_pedina][colonna_pedina].bandierina = 0;
-				scacchiera -> scacchiera.numero_bandierine--;
+				scacchiera -> scacchiera[riga_pedina][colonna_pedina].bandierina = 0;
+				scacchiera -> numero_bandierine--;
 			}
 			}
 		mosse_residue--;
@@ -198,11 +198,11 @@ int main(int argc, char * argv[], char * envp[]){
 	
 	for(j=0; j<abs(distanza_colonne); j++){
 		if(distanza_colonne > 0){ /*distanza colonna positiva --> devo andare a SINISTRA*/
-			reserveSem(s_id, ((riga_pedina) * SO_BASE) + colonna_pedina - 1);
+			reserveSem(s_id, (riga_pedina * SO_BASE) + colonna_pedina - 1);
 			scacchiera->scacchiera[riga_pedina][colonna_pedina].pedinaOccupaCella = 0;  /* da invertire */
 			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina_pid = 0;
 			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina = 0;
-			releaseSem(s_id, (riga_pedina) * SO_BASE) + colonna_pedina);
+			releaseSem(s_id, (riga_pedina * SO_BASE) + colonna_pedina);
 			nanosleep (& my_time , NULL );
 			colonna_pedina--; 
 			scacchiera->scacchiera[riga_pedina][colonna_pedina].pedinaOccupaCella = 1;  /* da invertire */
@@ -211,16 +211,16 @@ int main(int argc, char * argv[], char * envp[]){
 			if(scacchiera -> scacchiera[riga_pedina][colonna_pedina].bandierina){
 				/* aggiornare posizione bandierine sul vettore presente in scacchiera */
 				/*prendere punteggio */
-				scacchiera[riga_pedina][colonna_pedina].bandierina = 0;
-				scacchiera -> scacchiera.numero_bandierine--;
+				scacchiera -> scacchiera[riga_pedina][colonna_pedina].bandierina = 0;
+				scacchiera -> numero_bandierine--;
 			}
 			}
 		else    {
-			reserveSem(s_id, ((riga_pedina) * SO_BASE) + colonna_pedina + 1);
+			reserveSem(s_id, (riga_pedina * SO_BASE) + colonna_pedina + 1);
 			scacchiera->scacchiera[riga_pedina][colonna_pedina].pedinaOccupaCella = 0;  /* da invertire */
 			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina_pid = 0;
 			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina = 0;
-			releaseSem(s_id, (riga_pedina) * SO_BASE) + colonna_pedina);
+			releaseSem(s_id, (riga_pedina * SO_BASE) + colonna_pedina);
 			colonna_pedina++; 
 			nanosleep (& my_time , NULL );
 			scacchiera->scacchiera[riga_pedina][colonna_pedina].pedinaOccupaCella = 1;  /* da invertire */
@@ -229,17 +229,19 @@ int main(int argc, char * argv[], char * envp[]){
 			if(scacchiera -> scacchiera[riga_pedina][colonna_pedina].bandierina){
 				/* aggiornare posizione bandierine sul vettore presente in scacchiera */
 				/*prendere punteggio */
-				scacchiera[riga_pedina][colonna_pedina].bandierina = 0;
-				scacchiera -> scacchiera.numero_bandierine--;
+				scacchiera -> scacchiera[riga_pedina][colonna_pedina].bandierina = 0;
+				scacchiera -> numero_bandierine--;
 			}
 			}
 		mosse_residue--;
 		
 	}
-	if(scacchiera -> scacchiera.numero_bandierine == 0){
-		kill ( scacchiera->scacchiera.pid_master, SIGUSR1 );
+	#if 0
+	if(scacchiera->numero_bandierine == 0){
+		kill( scacchiera->pid_master, SIGUSR1 );
 		TEST_ERROR;
 	}
+	#endif
 	}
 	printf("[PEDINA %5d] pedina si trova su riga %d colonna %d mosse residue %d \n", getpid(), riga_pedina, colonna_pedina, mosse_residue);
 	
@@ -247,7 +249,7 @@ int main(int argc, char * argv[], char * envp[]){
 	exit(0);
 }
 
-
+#if 0
 void handle_signal(int signal){
 	switch(signal){
 		case SIGINT:
@@ -268,8 +270,8 @@ void handle_signal(int signal){
 			break;
 	}
 
-
-
+}
+#endif
 
 
 
