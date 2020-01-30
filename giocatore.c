@@ -40,9 +40,10 @@ int main(int argc, char * argv[], char * envp[]){
 	SO_ROUND_SCORE = atoi(envp[7]);
 	SO_N_MOVES = atoi(envp[8]);
 	SO_MIN_HOLD_NSEC = atoi(envp[9]);
-	int pedine_disposte = SO_NUM_P;
-	int prova;
+	int pedine_disposte;
 	
+	int prova;
+	pedine_disposte = 10;
 	char * args[5] = {PEDINA};
 	/*char * envp[10];*/
 	
@@ -136,6 +137,10 @@ int main(int argc, char * argv[], char * envp[]){
 	
 	index_player = check_player(my_pid, scacchiera);
 	j=0;
+	
+
+	printf("PEDINE DISPOSTEEEEEEEEEEEEEEEEEE %i= \n\n\n\n\n\n\n\n\n\n\n\n\n\n", pedine_disposte );
+
 	while(pedine_disposte>0)
 	{
 	    /*printf("%d \n", semctl(s_id, ID_PEDINE, GETVAL));*/
@@ -223,7 +228,7 @@ int main(int argc, char * argv[], char * envp[]){
 	
 	
 	
-	for(prova = 0; prova < 1; prova++){
+		for(prova = 0; prova < 1; prova++){
 		/* ciclo infinito in attesa che il master inizi la partita
 		Una volta ricevuta comunicazione dal master dell'inizio del round devo dare indicazione alle mie pedine
 		su come muoversi

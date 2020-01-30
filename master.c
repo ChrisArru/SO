@@ -31,7 +31,12 @@ void handle_signal(int signal){
 			/* to be manged */
 			break;
 		case SIGALRM:
-			print_status();
+			
+			/*print_status();
+			shmctl(m_id, IPC_RMID, NULL);
+			semctl ( sem_id , ID_READY , IPC_RMID );
+			/*qui devo killare tutti i figli giocatore che a loro volta devono killare tutti i figli pedine */
+			exit(0);
 			/* deallocazione della memoria condivisa*/
 			/*fine del programma*//* to be manged */
 			break;
@@ -39,7 +44,7 @@ void handle_signal(int signal){
 			/*printf("Ricevuto segnale EAGAIN \n");*/
 			break;
 		case SIGUSR1: /* segnale ricevuto da pedine (bandierine finite) */
-			/*devo terminare il round, stampa status, piazza altre bandierine e avvia un altro round */
+			/*devo terminare il round, stampa status, piazza altre bandierine e avvia un altro round  NON SO */ 
 			break;
 		case SIGUSR2:
 			break;
@@ -141,8 +146,7 @@ void print_status(){
 int main(){
 	unsigned int count_round = 0;
 	pid_t value, child_pid;
-	int sem_id, queue_id, queue_id_bandierine;
-	int m_id;
+	int sem_id, m_id, queue_id, queue_id_bandierine;
 	int i,j, index;
 	int status;
 	int num_bytes, num_bytes_bandierine; /*dimensione messaggi per la coda*/
@@ -243,6 +247,8 @@ int main(){
 	
 	/*value = malloc(SO_NUM_G*sizeof(value));*/
 
+
+											/* CREO I PROCESSI GIOCATORE */
 	for(i = 0; i < SO_NUM_G; i++){
 		switch(value = fork()){
 			case -1:
@@ -262,6 +268,8 @@ int main(){
 		}
 	}
 	
+
+					/*-----------------------------------------------------------------------------------------------------------*/
 	/* 
 	 * All child  processes are  attached. Then the  shared memory
 	 * can be  marked for deletion.  Remember: it will  be deleted
@@ -292,9 +300,10 @@ int main(){
 	
 	for(i = 0; i<SO_ALTEZZA; i++){
 		for(j = 0; j<SO_BASE; j++){
-			printf("pedina occupa cella %d, pid pedina %5d riga %d colonna %d \n",
+			printf("pedina occupa cella %d, pid pedina %5d pid pedina pid %5d riga %d colonna %d \n",
 			scacchiera->scacchiera[i][j].pedinaOccupaCella,
 			scacchiera->scacchiera[i][j].pedina,
+			scacchiera->scacchiera[i][j].pedina_pid,
 			i,
 			j
 			);
@@ -313,6 +322,18 @@ int main(){
 	/*Per piazzare le bandierine devo usare celle che non sono occupate da pedine.
 	Basterà quindi controllare che scacchiera->scacchiera[scacchiera->indice].pedinaOccupaCella == 0.
 	Il numero di bandierine è un numero RANDOM compreso tra SO_FLAG_MIN e SO_FLAG_MAX */
+	
+
+
+
+	
+
+
+	/* da qui deve partire un ciclo (quando parte il round il master deve inserire le bandierine ma le pedine restano le precedenti) ciclo deve essere gestito nel processo giocatore poichè deve 		inoltrare nuovi messaggi, posizione bandierine cambierà */
+
+									/* INSERISCO LE BANDIERINE*/	
+
+
 	
 	numBandierina = SO_FLAG_MIN + rand()%((SO_FLAG_MAX-SO_FLAG_MIN)+1) ;    
 	scacchiera->numero_bandierine = numBandierina;         /* da sistemare le bandierine */
@@ -365,14 +386,33 @@ int main(){
 			printf("Punteggio bandierine totale rimanente %d \n", punteggioBandTot);*/
 		}
 	}
-	/*Finito di posizionare le bandierine, stampo lo stato prima di far partire il timer*/
+	
+
+
+
+
+
+
+
+
+		/*-------------------Finito di posizionare le bandierine, stampo lo stato prima di far partire il timer----------------------------------*/
 	print_status();
 	
 
 
 
 	
-	/* Ora devo iniziare il ROUND*/
+										/* Ora devo iniziare il ROUND*/
+	
+
+
+
+	
+
+
+	
+
+		
 	/*alarm(SO_MAX_TIME);*/
 	
 	/*
@@ -404,6 +444,8 @@ int main(){
 	semop(sem_id, &sops, 1);
 	printf("[MASTER] Uscito da semaforo ID_READY_TO_PLAY e setto ID_PLAY \n");
 	
+	for(i = 0; i < 40; i++)
+		printf("Bandierina %i si trova su indirizzi %d e %d \n", i, scacchiera->posBandierine[i][0], scacchiera->posBandierine[i][1] );
 	
 	/*releaseSem(sem_id, ID_PLAY);*/
 	sops.sem_num = ID_PLAY;
@@ -415,15 +457,17 @@ int main(){
 	alarm(SO_MAX_TIME);
 	#endif
 	
+	/*si muovono le pedine */
+
 	/*exit(0);*/
 	
-
+	
 
 
 
 	/* devo ricevere la coda di messaggi da parte delle pedine (se sono state conquistate bandierine */
 	queue_id_bandierine = msgget(getpid(), IPC_CREAT | 0600);
-	while((num_bytes_bandierine = msgrcv(queue_id_bandierine, &my_msg_bandierine, sizeof(my_msg), getpid(), IPC_NOWAIT)) != -1){
+	while(((num_bytes_bandierine = msgrcv(queue_id_bandierine, &my_msg_bandierine, sizeof(my_msg), getpid(), IPC_NOWAIT)) != -1) && (scacchiera->numero_bandierine)){
 		if(num_bytes_bandierine >= 0) {/* dobbiamo incrementare il punteggio ai giocatori e rimuovere la bandierina */
 			token = strtok(my_msg_bandierine.mtext, " ");
 			/*printf("Token %s \n", token);*/
@@ -437,38 +481,39 @@ int main(){
 			token = strtok(NULL, " ");
 			/*printf("Token %s \n", token);*/
 			valore_bandierina=strtol(token, NULL,10);
-			
 			for(i = 0; i < 3; i++){
 				if(giocatore_bandierina == scacchiera->giocatori[i])
 					scacchiera->punteggio[i] += valore_bandierina; 				
 			}
-
-
-
-		
 			scacchiera -> scacchiera[riga_bandierina][colonna_bandierina].bandierina = 0;
-			scacchiera->numero_bandierine--;
-			printf("MASTER: MI e' arrtivata una bandierina e ho aggiornato tutto");
-			if(scacchiera->numero_bandierine == 0){
-				/* (a) termina il round
-					(b) stampa lo stato secondo quanto descritto in Sezione 1.6;
-					(c) piazza le nuove bandierine e avvia un nuovo round. POSSIAMO MANDARCI UN SEGNALE*/ 
-				
+			for(i = 0; i < scacchiera -> numero_bandierine; i++){
+				if(scacchiera->posBandierine[i][0] == riga_bandierina && scacchiera->posBandierine[index][1] == colonna_bandierina){
+					scacchiera->posBandierine[i][0] = 0;
+					scacchiera -> posBandierine[i][1] = 0;
+				} 
 			}
 
-
-
+			scacchiera->numero_bandierine--;
+			printf("MASTER: MI e' arrtivata una bandierina e ho aggiornato tutto");
+			
 		}
 		else{
 			printf("[MASTER: ERRORE RICEZIONE CODA DI MESSAGGI BANDIERINE %5d %d", getpid(), errno);
 			TEST_ERROR;
 		}
-
-
-
-
-
 	}
+	/* dobbiamo stoppare l'alarm */
+	print_status();
+	scacchiera->numero_round++;
+	/* se sono arrivato qui tutte le bandierine sono state occupate */
+		/* (a) termina il round  dobbiamo incrementare il round
+					(b) stampa lo stato secondo quanto descritto in Sezione 1.6; print_status();
+					(c) piazza le nuove bandierine e avvia un nuovo round. POSSIAMO MANDARCI UN SEGNALE*/ 
+
+	
+	
+
+
 
 	while(child_pid = wait(&status) != -1){  /* questi exit status da capire ancora come gestirli */
 		dprintf(2, "PID=%d, Sender (PID=%d) status =%d \n",

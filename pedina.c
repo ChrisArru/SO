@@ -71,7 +71,7 @@ int main(int argc, char * argv[], char * envp[]){
 	my_time.tv_nsec = SO_MIN_HOLD_NSEC;
 	
 			
-
+	printf("PEDINE DISPOST DGUHEF RIFRNFHREJFJBRJKFJERJNFJNK");
 
 	/* mi trovo l'indice in cui è posizionato il mio giocatore */
 	for(i = 0; i < 3; i++){
@@ -103,14 +103,16 @@ int main(int argc, char * argv[], char * envp[]){
 	}
 
 
-
+	
 	/* 
 	 * All child  processes are  attached. Then the  shared memory
 	 * can be  marked for deletion.  Remember: it will  be deleted
 	 * only when all processes are detached from it!!
 	 */
 	
-	
+	printf("[PEDINA %5d] Attesa del semaforo ID_PLAY \n", getpid());
+	reserveSem(s_id, ID_PLAY);
+	printf("[PEDINA %5d] Ottenuto semaforo ID_PLAY \n", getpid());
 	
 	
 	
@@ -157,11 +159,20 @@ int main(int argc, char * argv[], char * envp[]){
 	reserveSem(s_id, ID_PLAY);
 	printf("[PEDINA %5d] Ottenuto semaforo ID_PLAY \n", getpid());
 	
+	
+	
+
+										/* da qui si muovono le pedine */
 
 
-	/* da qui si muovono le pedine */
 
-	while(mosse_residue){
+
+
+
+
+ 
+	while(mosse_residue){                               /*dobbiamo implementare la parte dei SO_MIN_HOLD_NSEC  forse con un'altra nanosleep o con un timer */ 
+	printf("PEDINA: è entrato nel ciclo movimento");	
 	for(i=0; i<abs(distanza_righe); i++){
 		
 		if(distanza_righe > 0) {/*distanza riga positiva --> devo SCENDERE*/
@@ -233,13 +244,13 @@ int main(int argc, char * argv[], char * envp[]){
 			}
 		else    {
 			reserveSem(s_id, (riga_pedina * SO_BASE) + colonna_pedina + 1);
-			scacchiera->scacchiera[riga_pedina][colonna_pedina].pedinaOccupaCella = 0;  /* da invertire */
+			scacchiera->scacchiera[riga_pedina][colonna_pedina].pedinaOccupaCella = 0; 
 			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina_pid = 0;
 			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina = 0;
 			releaseSem(s_id, (riga_pedina * SO_BASE) + colonna_pedina);
 			colonna_pedina++; 
 			nanosleep (& my_time , NULL );
-			scacchiera->scacchiera[riga_pedina][colonna_pedina].pedinaOccupaCella = 1;  /* da invertire */
+			scacchiera->scacchiera[riga_pedina][colonna_pedina].pedinaOccupaCella = 1;  
 			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina_pid = getpid();
 			scacchiera -> scacchiera[riga_pedina][colonna_pedina].pedina = getppid();	/*distanza colonna negativa --> devo andare a DESTRA*/
 			if(scacchiera -> scacchiera[riga_pedina][colonna_pedina].bandierina){
