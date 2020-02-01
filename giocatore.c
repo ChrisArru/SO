@@ -40,10 +40,10 @@ int main(int argc, char * argv[], char * envp[]){
 	SO_ROUND_SCORE = atoi(envp[7]);
 	SO_N_MOVES = atoi(envp[8]);
 	SO_MIN_HOLD_NSEC = atoi(envp[9]);
-	int pedine_disposte;
-	
 	int prova;
-	pedine_disposte = 10;
+	int pedine_disposte = SO_NUM_P;
+	
+	
 	char * args[5] = {PEDINA};
 	/*char * envp[10];*/
 	
@@ -137,10 +137,6 @@ int main(int argc, char * argv[], char * envp[]){
 	
 	index_player = check_player(my_pid, scacchiera);
 	j=0;
-	
-
-	printf("PEDINE DISPOSTEEEEEEEEEEEEEEEEEE %i= \n\n\n\n\n\n\n\n\n\n\n\n\n\n", pedine_disposte );
-
 	while(pedine_disposte>0)
 	{
 	    /*printf("%d \n", semctl(s_id, ID_PEDINE, GETVAL));*/
@@ -153,7 +149,7 @@ int main(int argc, char * argv[], char * envp[]){
 		printf("[GIOCATORE] %5d Superato semaforo ID_PEDINE\n", my_pid);
 		/*se sono qui la pedina è libera di muoversi perchè ha il semaforo*/
 		/*printf("[GIOCATORE] %5d Cella %d %d Occupata ? %d \n", my_pid, scacchiera->rigaRand,scacchiera->colonnaRand,scacchiera->scacchiera[scacchiera->rigaRand][scacchiera->colonnaRand].pedinaOccupaCella);*/
-		if (scacchiera->scacchiera[scacchiera->rigaRand][scacchiera->colonnaRand].pedinaOccupaCella == 0 ){
+		if (scacchiera->scacchiera[scacchiera->rigaRand][scacchiera->colonnaRand].pedinaOccupaCella == 0 ){ /* da fare sul semaforo */
 			
 			
 			/*scacchiera->indice ++;*/
@@ -180,6 +176,7 @@ int main(int argc, char * argv[], char * envp[]){
 			
 			/* sposto qui perchè è capitato che mettesse la pedina nella stessa casella, come se al primo colpo non facesse il settaggio... è perchè è prima della fork??*/
 			scacchiera->scacchiera[scacchiera->rigaRand][scacchiera->colonnaRand].pedinaOccupaCella = 1; 
+			reserveSem(s_id, (scacchiera->rigaRand * SO_BASE) + scacchiera->colonnaRand);
 			/*printf("[GIOCATORE] %5d Pedine disposte %d \n", my_pid, pedine_disposte);*/
 			/*getchar();*/
 			scacchiera->scacchiera[scacchiera->rigaRand][scacchiera->colonnaRand].pedina = my_pid; /*getpid();*/ /*messo qui e non dentro la fork() prendo il pid del padre*/
@@ -224,11 +221,12 @@ int main(int argc, char * argv[], char * envp[]){
 	 * can be  marked for deletion.  Remember: it will  be deleted
 	 * only when all processes are detached from it!!
 	 */
+	shmctl(m_id, IPC_RMID, NULL);
 	
 	
 	
-	
-		for(prova = 0; prova < 1; prova++){
+	for(prova = 0; prova < 1; prova++)
+	{
 		/* ciclo infinito in attesa che il master inizi la partita
 		Una volta ricevuta comunicazione dal master dell'inizio del round devo dare indicazione alle mie pedine
 		su come muoversi
@@ -265,6 +263,7 @@ int main(int argc, char * argv[], char * envp[]){
 					num_bytes++; /*bisogna tener conto del "/0" finale per terminazione stringa */
 			
 					msgsnd(queue_id, &my_msg, /*sizeof(my_msg)*/num_bytes, 0); /*invio il messaggio*/
+					
 					printf("[GIOCATORE %5d]Ho scritto %s a mio figlio %d \n", getpid(), &my_msg.mtext, scacchiera->scacchiera[i][j].pedina_pid);
 					TEST_ERROR;
 				}
@@ -274,8 +273,9 @@ int main(int argc, char * argv[], char * envp[]){
 		releaseSem(s_id, ID_MOVE);
 		printf("[GIOCATORE %5d] Rilasciato semaforo ID_MOVE \n", getpid());
 		releaseSem(s_id, ID_READY_TO_PLAY);
-		}
-		shmctl(m_id, IPC_RMID, NULL);
+	}
+	wait(90);
+		
 	exit(0);
 }
 

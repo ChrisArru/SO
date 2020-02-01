@@ -25,7 +25,6 @@ per la gestione dei processi
 #define ID_READY_TO_PLAY          4806 /*Semaforo che indica che TUTTI i giocatori hanno finito di dare le indicazioni e informa MASTER che può iniziare il timer*/
 #define ID_PLAY          4807 /*Master dà inizio alla partita e pedine si muovono*/
 
-
 /* Global variables over the BSS*/
 int SO_MAX_TIME;
 int SO_NUM_G;
@@ -56,11 +55,11 @@ typedef struct memoria_condivisa{
 	pid_t giocatori[4];
 	unsigned int punteggio[4];
 	unsigned int mosse[4];
-	unsigned int posizionePedina[1600];
+	unsigned int posizionePedina[1600][2];
 	unsigned int posBandierine[40][2];
 	unsigned int numero_round;
-	unsigned int numero_bandierine;
 	pid_t pid_master;
+	unsigned int numero_bandierine;
 }memoria_condivisa;
 
 struct msgbuf{
